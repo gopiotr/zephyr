@@ -97,6 +97,8 @@ void test_arm_zero_latency_irqs(void)
 	__DSB();
 	__ISB();
 
+	k_sleep(Z_TIMEOUT_MS(10));
+
 	/* Confirm test flag is set by the zero-latency ISR handler. */
 	post_flag = test_flag;
 	zassert_true(post_flag == 1, "Test flag not set by ISR\n");
