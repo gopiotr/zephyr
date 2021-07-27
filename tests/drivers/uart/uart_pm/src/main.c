@@ -235,8 +235,8 @@ void test_main(void)
 
 	ztest_test_suite(uart_pm,
 			 ztest_unit_test(test_uart_pm_in_idle),
-			 ztest_unit_test(test_uart_pm_poll_tx),
-			 ztest_unit_test(test_uart_pm_poll_tx_interrupted)
+			 ztest_unit_test(test_uart_pm_poll_tx)//,
+			 //ztest_unit_test(test_uart_pm_poll_tx_interrupted)
 			);
 	ztest_run_test_suite(uart_pm);
 }
