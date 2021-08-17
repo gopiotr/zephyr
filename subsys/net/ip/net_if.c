@@ -4276,6 +4276,7 @@ void net_if_init(void)
 		if_count++;
 	}
 
+	// if_count = 0;
 	if (if_count == 0) {
 		NET_ERR("There is no network interface to work with!");
 		goto out;

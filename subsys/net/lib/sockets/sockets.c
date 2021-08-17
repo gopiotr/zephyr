@@ -691,6 +691,7 @@ ssize_t zsock_sendto_ctx(struct net_context *ctx, const void *buf, size_t len,
 ssize_t z_impl_zsock_sendto(int sock, const void *buf, size_t len, int flags,
 			   const struct sockaddr *dest_addr, socklen_t addrlen)
 {
+	//return -1;
 	VTABLE_CALL(sendto, sock, buf, len, flags, dest_addr, addrlen);
 }
 

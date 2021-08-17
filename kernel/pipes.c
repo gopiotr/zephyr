@@ -106,6 +106,8 @@ int z_impl_k_pipe_alloc_init(struct k_pipe *pipe, size_t size)
 	void *buffer;
 	int ret;
 
+	// return -ENOMEM;
+
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_pipe, alloc_init, pipe);
 
 	if (size != 0U) {

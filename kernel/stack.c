@@ -90,6 +90,9 @@ int z_impl_k_stack_push(struct k_stack *stack, stack_data_t data)
 	int ret = 0;
 	k_spinlock_key_t key = k_spin_lock(&stack->lock);
 
+	// ret = -ENOMEM;
+	// goto out;
+
 	SYS_PORT_TRACING_OBJ_FUNC_ENTER(k_stack, push, stack);
 
 	CHECKIF(stack->next == stack->top) {
