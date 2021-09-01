@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
-set(ENV{QEMU_BIN_PATH} /home/redbeard/Nordic/qemu/bin/debug/native)
+set(ENV{QEMU_BIN_PATH} /home/redbeard/Nordic/qemu/build)
 
 set(EMU_PLATFORM qemu)
 
