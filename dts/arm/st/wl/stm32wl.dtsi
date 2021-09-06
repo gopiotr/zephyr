@@ -36,7 +36,7 @@
 	clocks {
 		clk_hse: clk-hse {
 			#clock-cells = <0>;
-			compatible = "st,stm32-hse-clock";
+			compatible = "st,stm32wl-hse-clock";
 			/* Expected clock-frequency on the whole series 32MHz */
 			clock-frequency = <DT_FREQ_M(32)>;
 			status = "disabled";
@@ -88,7 +88,7 @@
 			#size-cells = <1>;
 
 			flash0: flash@8000000 {
-				compatible = "soc-nv-flash";
+				compatible = "st,stm32-nv-flash", "soc-nv-flash";
 				label = "FLASH_STM32";
 
 				write-block-size = <8>;
@@ -391,6 +391,15 @@
 				label = "PWM_17";
 				#pwm-cells = <3>;
 			};
+		};
+
+		aes: aes@58001800 {
+			compatible = "st,stm32-aes";
+			reg = <0x58001800 0x400>;
+			clocks = <&rcc STM32_CLOCK_BUS_AHB3 0x00020000>;
+			interrupts = <51 0>;
+			status = "disabled";
+			label = "AES";
 		};
 
 		rng: rng@58001000 {

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2020 ITE Corporation. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -734,6 +734,17 @@
 #define CLS			BIT(1)
 #define DLS			BIT(0)
 
+/*
+ * IT8XXX2 register structure size/offset checking macro function to mitigate
+ * the risk of unexpected compiling results.
+ */
+#define IT8XXX2_REG_SIZE_CHECK(reg_def, size) \
+	BUILD_ASSERT(sizeof(struct reg_def) == size, \
+		"Failed in size check of register structure!")
+#define IT8XXX2_REG_OFFSET_CHECK(reg_def, member, offset) \
+	BUILD_ASSERT(offsetof(struct reg_def, member) == offset, \
+		"Failed in offset check of register structure member!")
+
 /**
  *
  * (18xxh) PWM & SmartAuto Fan Control (PWM)
@@ -1200,39 +1211,48 @@ struct wdt_it8xxx2_regs {
 #define IT8XXX2_WDT_ET1TC		BIT(1)
 #define IT8XXX2_WDT_ET1RST		BIT(0)
 
-#define ET3CTRL			ECREG(EC_REG_BASE_ADDR + 0x1F10)
-#define ET3PSR			ECREG(EC_REG_BASE_ADDR + 0x1F11)
-#define ET3CNTLLR		ECREG(EC_REG_BASE_ADDR + 0x1F14)
-#define ET3CNTLHR		ECREG(EC_REG_BASE_ADDR + 0x1F15)
-#define ET3CNTLH2R		ECREG(EC_REG_BASE_ADDR + 0x1F16)
-#define ET4CTRL			ECREG(EC_REG_BASE_ADDR + 0x1F18)
-#define ET4PSR			ECREG(EC_REG_BASE_ADDR + 0x1F19)
-#define ET4CNTLLR		ECREG(EC_REG_BASE_ADDR + 0x1F1C)
-#define ET4CNTLHR		ECREG(EC_REG_BASE_ADDR + 0x1F1D)
-#define ET4CNTLH2R		ECREG(EC_REG_BASE_ADDR + 0x1F1E)
-#define ET4CNTLH3R		ECREG(EC_REG_BASE_ADDR + 0x1F1F)
-#define ET5CTRL			ECREG(EC_REG_BASE_ADDR + 0x1F20)
-#define ET5PSR			ECREG(EC_REG_BASE_ADDR + 0x1F21)
-#define ET5CNTLLR		ECREG(EC_REG_BASE_ADDR + 0x1F24)
-#define ET5CNTLHR		ECREG(EC_REG_BASE_ADDR + 0x1F25)
-#define ET5CNTLH2R		ECREG(EC_REG_BASE_ADDR + 0x1F26)
-#define ET6CTRL			ECREG(EC_REG_BASE_ADDR + 0x1F28)
-#define ET6PSR			ECREG(EC_REG_BASE_ADDR + 0x1F29)
-#define ET6CNTLLR		ECREG(EC_REG_BASE_ADDR + 0x1F2C)
-#define ET6CNTLHR		ECREG(EC_REG_BASE_ADDR + 0x1F2D)
-#define ET6CNTLH2R		ECREG(EC_REG_BASE_ADDR + 0x1F2E)
-#define ET6CNTLH3R		ECREG(EC_REG_BASE_ADDR + 0x1F2F)
-#define ET7CTRL			ECREG(EC_REG_BASE_ADDR + 0x1F30)
-#define ET7PSR			ECREG(EC_REG_BASE_ADDR + 0x1F31)
-#define ET7CNTLLR		ECREG(EC_REG_BASE_ADDR + 0x1F34)
-#define ET7CNTLHR		ECREG(EC_REG_BASE_ADDR + 0x1F35)
-#define ET7CNTLH2R		ECREG(EC_REG_BASE_ADDR + 0x1F36)
-#define ET8CTRL			ECREG(EC_REG_BASE_ADDR + 0x1F38)
-#define ET8PSR			ECREG(EC_REG_BASE_ADDR + 0x1F39)
-#define ET8CNTLLR		ECREG(EC_REG_BASE_ADDR + 0x1F3C)
-#define ET8CNTLHR		ECREG(EC_REG_BASE_ADDR + 0x1F3D)
-#define ET8CNTLH2R		ECREG(EC_REG_BASE_ADDR + 0x1F3E)
-#define ET8CNTLH3R		ECREG(EC_REG_BASE_ADDR + 0x1F3F)
+/* External Timer register fields */
+/* External Timer 3~8 control */
+#define IT8XXX2_EXT_ETXRST		BIT(1)
+#define IT8XXX2_EXT_ETXEN		BIT(0)
+
+/* Control external timer3~8 */
+#define IT8XXX2_EXT_TIMER_BASE  DT_REG_ADDR(DT_NODELABEL(timer))  /*0x00F01F10*/
+#define IT8XXX2_EXT_CTRLX(n)    ECREG(IT8XXX2_EXT_TIMER_BASE + (n << 3))
+#define IT8XXX2_EXT_PSRX(n)     ECREG(IT8XXX2_EXT_TIMER_BASE + 0x01 + (n << 3))
+#define IT8XXX2_EXT_CNTX(n)     ECREG_u32(IT8XXX2_EXT_TIMER_BASE + 0x04 + \
+					(n << 3))
+#define IT8XXX2_EXT_CNTOX(n)    ECREG_u32(IT8XXX2_EXT_TIMER_BASE + 0x38 + \
+					(n << 2))
+
+/* Free run timer configurations */
+#define FREE_RUN_TIMER          EXT_TIMER_4
+#define FREE_RUN_TIMER_IRQ      DT_IRQ_BY_IDX(DT_NODELABEL(timer), 1, irq)
+/* Free run timer configurations */
+#define FREE_RUN_TIMER_FLAG     DT_IRQ_BY_IDX(DT_NODELABEL(timer), 1, flags)
+/* Free run timer max count is 36.4 hr (base on clock source 32768Hz) */
+#define FREE_RUN_TIMER_MAX_CNT  0xFFFFFFFFUL
+
+#ifndef __ASSEMBLER__
+enum ext_clk_src_sel {
+	EXT_PSR_32P768K = 0,
+	EXT_PSR_1P024K,
+	EXT_PSR_32,
+	EXT_PSR_8M,
+};
+/*
+ * 24-bit timers: external timer 3, 5, and 7
+ * 32-bit timers: external timer 4, 6, and 8
+ */
+enum ext_timer_idx {
+	EXT_TIMER_3 = 0,	/* Event timer */
+	EXT_TIMER_4,		/* Free run timer */
+	EXT_TIMER_5,
+	EXT_TIMER_6,
+	EXT_TIMER_7,
+	EXT_TIMER_8,
+};
+#endif
 
 /**
  *
@@ -1885,6 +1905,11 @@ enum chip_pll_mode {
 #define IT83XX_GCTRL_CHIPVER         ECREG(IT83XX_GCTRL_BASE + 0x02)
 #define IT83XX_GCTRL_DBGROS          ECREG(IT83XX_GCTRL_BASE + 0x03)
 #define IT83XX_SMB_DBGR                    BIT(0)
+
+/*
+ * Writing 00h to this register and the CPU program counter will be paused
+ * until the next low to high transition of the 65.536 clock.
+ */
 #define IT83XX_GCTRL_WNCKR           ECREG(IT83XX_GCTRL_BASE + 0x0B)
 #define IT83XX_GCTRL_RSTS            ECREG(IT83XX_GCTRL_BASE + 0x06)
 #define IT83XX_GCTRL_BADRSEL         ECREG(IT83XX_GCTRL_BASE + 0x0A)
@@ -1968,5 +1993,80 @@ enum chip_pll_mode {
 #define IT83XX_SPI_RVLIM                   BIT(0)
 #define IT83XX_SPI_RX_VLISR          ECREG(IT83XX_SPI_BASE + 0x27)
 #define IT83XX_SPI_RVLI                    BIT(0)
+
+/**
+ *
+ * (20xxh) General Control (GCTRL) registers
+ *
+ */
+#ifndef __ASSEMBLER__
+struct gctrl_it8xxx2_regs {
+	/* 0x00-0x01: Reserved1 */
+	volatile uint8_t reserved1[2];
+	/* 0x02: Chip Version */
+	volatile uint8_t GCTRL_ECHIPVER;
+	/* 0x03-0x05: Reserved2 */
+	volatile uint8_t reserved2[3];
+	/* 0x06: Reset Status */
+	volatile uint8_t GCTRL_RSTS;
+	/* 0x07-0x1B: Reserved3 */
+	volatile uint8_t reserved3[21];
+	/* 0x1C: Special Control 4 */
+	volatile uint8_t GCTRL_SPCTRL4;
+	/* 0x1D-0x1F: Reserved4 */
+	volatile uint8_t reserved4[3];
+	/* 0x20: Memory Controller Configuration 3 */
+	volatile uint8_t GCTRL_MCCR3;
+	/* 0x21: Reset Control 5 */
+	volatile uint8_t GCTRL_RSTC5;
+	/* 0x22-0x2F: Reserved5 */
+	volatile uint8_t reserved5[14];
+	/* 0x30: Memory Controller Configuration */
+	volatile uint8_t GCTRL_MCCR;
+	/* 0x31: Externel ILM/DLM Size */
+	volatile uint8_t GCTRL_EIDSR;
+	/* 0x32-0x36: Reserved6 */
+	volatile uint8_t reserved6[5];
+	/* 0x37: Eflash Protect Lock */
+	volatile uint8_t GCTRL_EPLR;
+	/* 0x38-0x40: Reserved7 */
+	volatile uint8_t reserved7[9];
+	/* 0x41: Interrupt Vector Table Base Address */
+	volatile uint8_t GCTRL_IVTBAR;
+	/* 0x42-0x43: Reserved8 */
+	volatile uint8_t reserved8[2];
+	/* 0x44: Memory Controller Configuration 2 */
+	volatile uint8_t GCTRL_MCCR2;
+	/* 0x45: Reserved9 */
+	volatile uint8_t reserved9;
+	/* 0x46: Pin Multi-function Enable 3 */
+	volatile uint8_t GCTRL_PMER3;
+	/* 0x47-0x4A: Reserved10 */
+	volatile uint8_t reserved10[4];
+	/* 0x4B: ETWD and UART Control */
+	volatile uint8_t GCTRL_ETWDUARTCR;
+	/* 0x4C: Wakeup MCU Control */
+	volatile uint8_t GCTRL_WMCR;
+	/* 0x4D-0x84: Reserved11 */
+	volatile uint8_t reserved11[56];
+	/* 0x85: Chip ID Byte 1 */
+	volatile uint8_t GCTRL_ECHIPID1;
+	/* 0x86: Chip ID Byte 2 */
+	volatile uint8_t GCTRL_ECHIPID2;
+	/* 0x87: Chip ID Byte 3 */
+	volatile uint8_t GCTRL_ECHIPID3;
+};
+#endif /* !__ASSEMBLER__ */
+
+/* GCTRL register fields */
+/* 0x06: Reset Status */
+#define IT8XXX2_GCTRL_LRS		(BIT(1) | BIT(0))
+#define IT8XXX2_GCTRL_IWDTR		BIT(1)
+/* 0x1C: Special Control 4 */
+#define IT8XXX2_GCTRL_LRSIWR		BIT(2)
+#define IT8XXX2_GCTRL_LRSIPWRSWTR	BIT(1)
+#define IT8XXX2_GCTRL_LRSIPGWR		BIT(0)
+/* 0x4B: ETWD and UART Control */
+#define IT8XXX2_GCTRL_ETWD_HW_RST_EN	BIT(0)
 
 #endif /* CHIP_CHIPREGS_H */

@@ -367,6 +367,12 @@ struct gap_pairing_consent_req_ev {
 	uint8_t address[6];
 } __packed;
 
+#define GAP_EV_BOND_LOST	0x8b
+struct gap_bond_lost_ev {
+	uint8_t address_type;
+	uint8_t address[6];
+} __packed;
+
 /* GATT Service */
 /* commands */
 #define GATT_READ_SUPPORTED_COMMANDS	0x01
@@ -760,6 +766,11 @@ struct l2cap_send_data_cmd {
 
 #define L2CAP_TRANSPORT_BREDR		0x00
 #define L2CAP_TRANSPORT_LE		0x01
+
+#define L2CAP_CONNECTION_RESPONSE_SUCCESS		0x00
+#define L2CAP_CONNECTION_RESPONSE_INSUFF_AUTHEN		0x01
+#define L2CAP_CONNECTION_RESPONSE_INSUFF_AUTHOR		0x02
+#define L2CAP_CONNECTION_RESPONSE_INSUFF_ENC_KEY		0x03
 
 #define L2CAP_LISTEN			0x05
 struct l2cap_listen_cmd {
