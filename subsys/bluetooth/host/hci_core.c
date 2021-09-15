@@ -1160,6 +1160,7 @@ void bt_hci_le_enh_conn_complete(struct bt_hci_evt_le_enh_conn_complete *evt)
 		 * object to keep host in sync with controller state.
 		 */
 		atomic_clear_bit(adv->flags, BT_ADV_ENABLED);
+		(void)bt_le_lim_adv_cancel_timeout(adv);
 	}
 
 	if (IS_ENABLED(CONFIG_BT_CENTRAL) &&
@@ -2390,7 +2391,7 @@ static void process_events(struct k_poll_event *ev, int count)
 
 #if defined(CONFIG_BT_CONN)
 #if defined(CONFIG_BT_ISO)
-/* command FIFO + conn_change signal + MAX_CONN + MAX_ISO_CONN */
+/* command FIFO + conn_change signal + MAX_CONN + ISO_MAX_CHAN */
 #define EV_COUNT (2 + CONFIG_BT_MAX_CONN + CONFIG_BT_ISO_MAX_CHAN)
 #else
 /* command FIFO + conn_change signal + MAX_CONN */
@@ -2398,8 +2399,8 @@ static void process_events(struct k_poll_event *ev, int count)
 #endif /* CONFIG_BT_ISO */
 #else
 #if defined(CONFIG_BT_ISO)
-/* command FIFO + MAX_ISO_CONN */
-#define EV_COUNT (1 + CONFIG_BT_ISO_MAX_CHAN)
+/* command FIFO + conn_change signal + ISO_MAX_CHAN */
+#define EV_COUNT (2 + CONFIG_BT_ISO_MAX_CHAN)
 #else
 /* command FIFO */
 #define EV_COUNT 1
