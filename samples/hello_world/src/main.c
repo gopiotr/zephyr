@@ -19,7 +19,8 @@ void main(void)
 
 	start_time = timing_counter_get();
 
-	k_busy_wait(10000000); // 10 sec
+	// k_busy_wait(10000000);  // 10 sec
+	k_usleep(10000000);  // 10 sec
 
 	end_time = timing_counter_get();
 
