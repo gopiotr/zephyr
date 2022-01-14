@@ -2790,6 +2790,9 @@ class TestSuite(DisablePyTestCollectionMixin):
         # run integration tests only
         self.integration = False
 
+        # used during creating shorter build paths
+        self.link_dir_counter = 0
+
         self.pipeline = None
         self.version = "NA"
 
@@ -3875,6 +3878,48 @@ class TestSuite(DisablePyTestCollectionMixin):
             else:
                 logger.error(f"{log_info} - unrecognized platform - {platform}")
                 sys.exit(2)
+
+    def create_build_dir_links(self):
+        """
+        Iterate through all no-skipped instances in suite and create links
+        for each one build directories
+        """
+
+        links_dir_name = "twister_links"  # folder for all links
+        links_dir_path = os.path.join(self.outdir, links_dir_name)
+        if not os.path.exists(links_dir_path):
+            os.mkdir(links_dir_path)
+
+        for instance in self.instances.values():
+            if instance.status != "skipped":
+                self._create_build_dir_link(links_dir_path, instance)
+
+    def _create_build_dir_link(self, links_dir_path, instance):
+        """
+        Create build directory with original "long" path. Next take shorter
+        path and link them with original path - create link. At the end
+        replace build_dir to shorter path. This action helps to limit path
+        length which can be significant during building by CMake on Windows
+        OS.
+        """
+
+        os.makedirs(instance.build_dir)
+
+        link_name = f"test_{self.link_dir_counter}"
+        link_path = os.path.join(links_dir_path, link_name)
+
+        if os.name == "nt":  # if OS is Windows
+            command = ["mklink", "/J", f"{link_path}", f"{instance.build_dir}"]
+            shell_option = True
+        else:  # for Linux and MAC OS
+            command = ["ln", "-s", f"{instance.build_dir}", f"{link_path}"]
+            shell_option = False
+
+        subprocess.call(command, shell=shell_option)
+
+        instance.build_dir = link_path
+
+        self.link_dir_counter += 1
 
 
 class CoverageTool:
