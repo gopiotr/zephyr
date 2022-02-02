@@ -380,6 +380,9 @@ class HarnessImporter:
 
         self.instance = my_class()
 
+    def get_imported_harness_class_name(self):
+        return type(self.instance).__name__
+
 
 class Handler:
     def __init__(self, instance, type_str="build"):
@@ -467,6 +470,40 @@ class Handler:
                 self.instance.reason == instance_reason_unknown and \
                 harness_testcase_result_skip in self.instance.results.values():
             self.instance.reason = "ztest skip"
+
+    def _verify_ztest_suite_name(self, harness_state, detected_suite_names, handler_time):
+        """
+        When test is written in ztest framework it should be also verify if
+        printed suite names correspond to expected suite names found in test
+        source file. Due to the fact, that Twister parse only c file and there
+        could be several test suites depend from #ifdef macro some of them could
+        be intentionally skipped. Due to that fact in this function there is
+        only check if detected suite names correspond to expected suite names
+        (and not in reverse).
+        """
+        expected_suite_names = self.instance.testcase.ztest_suite_names
+        harness_state_pass = "passed"
+        if not expected_suite_names or \
+                not harness_state == harness_state_pass:
+            return
+        if not detected_suite_names:
+            self._missing_suite_name(expected_suite_names, handler_time)
+        for detected_suite_name in detected_suite_names:
+            if detected_suite_name not in expected_suite_names:
+                self._missing_suite_name(expected_suite_names, handler_time)
+                break
+
+    def _missing_suite_name(self, expected_suite_names, handler_time):
+        """
+        Change result of performed test if problem with missing or unpropper
+        suite name was occurred.
+        """
+        self.set_state("failed", handler_time)
+        for k in self.instance.testcase.cases:
+            self.instance.results[k] = "FAIL"
+        self.instance.reason = f"Test suite names were not printed or some " \
+                               f"of them in output do not correspond with " \
+                               f"expected: {expected_suite_names}"
 
 
 class BinaryHandler(Handler):
@@ -625,6 +662,9 @@ class BinaryHandler(Handler):
             self.add_missing_testscases(harness)
 
         self._set_skip_reason(harness.state)
+
+        if harness_import.get_imported_harness_class_name() == "Test":
+            self._verify_ztest_suite_name(harness.state, harness.detected_suite_names, handler_time)
 
         self.record(harness)
 
@@ -924,6 +964,9 @@ class DeviceHandler(Handler):
 
         self._set_skip_reason(harness.state)
 
+        if harness_import.get_imported_harness_class_name() == "Test":
+            self._verify_ztest_suite_name(harness.state, harness.detected_suite_names, handler_time)
+
         if post_script:
             self.run_custom_script(post_script, 30)
 
@@ -1193,6 +1236,9 @@ class QEMUHandler(Handler):
             self.add_missing_testscases(harness)
 
         self._set_skip_reason(harness.state)
+
+        if harness_import.get_imported_harness_class_name() == "Test":
+            self._verify_ztest_suite_name(harness.state, harness.detected_suite_names, 0)
 
     def get_fifo(self):
         return self.fifo_fn
@@ -1622,18 +1668,21 @@ class ScanPathResult:
                                          ztest_run_registered_test_suites.
         has_test_main                    Whether or not the path contains a
                                          definition of test_main(void)
+        ztest_suite_names                Names of found ztest suites
     """
     def __init__(self,
                  matches: List[str] = None,
                  warnings: str = None,
                  has_registered_test_suites: bool = False,
                  has_run_registered_test_suites: bool = False,
-                 has_test_main: bool = False):
+                 has_test_main: bool = False,
+                 ztest_suite_names: List[str] = []):
         self.matches = matches
         self.warnings = warnings
         self.has_registered_test_suites = has_registered_test_suites
         self.has_run_registered_test_suites = has_run_registered_test_suites
         self.has_test_main = has_test_main
+        self.ztest_suite_names = ztest_suite_names
 
     def __eq__(self, other):
         if not isinstance(other, ScanPathResult):
@@ -1644,7 +1693,9 @@ class ScanPathResult:
                  other.has_registered_test_suites) and
                 (self.has_run_registered_test_suites ==
                  other.has_run_registered_test_suites) and
-                self.has_test_main == other.has_test_main)
+                self.has_test_main == other.has_test_main and
+                (sorted(self.ztest_suite_names) ==
+                 sorted(other.ztest_suite_names)))
 
 
 class TestCase(DisablePyTestCollectionMixin):
@@ -1702,6 +1753,7 @@ class TestCase(DisablePyTestCollectionMixin):
         self.min_flash = -1
         self.extra_sections = None
         self.integration_platforms = []
+        self.ztest_suite_names = []
 
     @staticmethod
     def get_unique(testcase_root, workdir, name):
@@ -1788,18 +1840,19 @@ Tests should reference the category and subsystem with a dot as a separator.
                              'offset': 0}
 
             with contextlib.closing(mmap.mmap(**mmap_args)) as main_c:
-                suite_regex_match = suite_regex.search(main_c)
-                registered_suite_regex_match = registered_suite_regex.search(
-                    main_c)
+                suite_regex_matches = \
+                    [m for m in suite_regex.finditer(main_c)]
+                registered_suite_regex_matches = \
+                    [m for m in registered_suite_regex.finditer(main_c)]
 
-                if registered_suite_regex_match:
+                if registered_suite_regex_matches:
                     has_registered_test_suites = True
                 if registered_suite_run_regex.search(main_c):
                     has_run_registered_test_suites = True
                 if test_main_regex.search(main_c):
                     has_test_main = True
 
-                if not suite_regex_match and not has_registered_test_suites:
+                if not suite_regex_matches and not has_registered_test_suites:
                     # can't find ztest_test_suite, maybe a client, because
                     # it includes ztest.h
                     return ScanPathResult(
@@ -1807,16 +1860,23 @@ Tests should reference the category and subsystem with a dot as a separator.
                         warnings=None,
                         has_registered_test_suites=has_registered_test_suites,
                         has_run_registered_test_suites=has_run_registered_test_suites,
-                        has_test_main=has_test_main)
+                        has_test_main=has_test_main,
+                        ztest_suite_names=[])
 
                 suite_run_match = suite_run_regex.search(main_c)
-                if suite_regex_match and not suite_run_match:
+                if suite_regex_matches and not suite_run_match:
                     raise ValueError("can't find ztest_run_test_suite")
 
-                if suite_regex_match:
-                    search_start = suite_regex_match.end()
+                if suite_regex_matches:
+                    search_start = suite_regex_matches[0].end()
+                    ztest_suite_names = \
+                        [m.group("suite_name") for m in suite_regex_matches]
                 else:
-                    search_start = registered_suite_regex_match.end()
+                    search_start = registered_suite_regex_matches[0].end()
+                    ztest_suite_names = \
+                        [m.group("suite_name") for m in registered_suite_regex_matches]
+                ztest_suite_names = \
+                    [name.decode("UTF-8") for name in ztest_suite_names]
 
                 if suite_run_match:
                     search_end = suite_run_match.start()
@@ -1842,13 +1902,16 @@ Tests should reference the category and subsystem with a dot as a separator.
                     warnings=warnings,
                     has_registered_test_suites=has_registered_test_suites,
                     has_run_registered_test_suites=has_run_registered_test_suites,
-                    has_test_main=has_test_main)
+                    has_test_main=has_test_main,
+                    ztest_suite_names=ztest_suite_names)
 
     def scan_path(self, path):
         subcases = []
         has_registered_test_suites = False
         has_run_registered_test_suites = False
         has_test_main = False
+        ztest_suite_names = []
+
         for filename in glob.glob(os.path.join(path, "src", "*.c*")):
             try:
                 result: ScanPathResult = self.scan_file(filename)
@@ -1864,6 +1927,9 @@ Tests should reference the category and subsystem with a dot as a separator.
                     has_run_registered_test_suites = True
                 if result.has_test_main:
                     has_test_main = True
+                if result.ztest_suite_names:
+                    ztest_suite_names += result.ztest_suite_names
+
             except ValueError as e:
                 logger.error("%s: can't find: %s" % (filename, e))
 
@@ -1874,6 +1940,8 @@ Tests should reference the category and subsystem with a dot as a separator.
                     logger.error("%s: %s" % (filename, result.warnings))
                 if result.matches:
                     subcases += result.matches
+                if result.ztest_suite_names:
+                    ztest_suite_names += result.ztest_suite_names
             except ValueError as e:
                 logger.error("%s: can't find: %s" % (filename, e))
 
@@ -1885,16 +1953,18 @@ Tests should reference the category and subsystem with a dot as a separator.
             logger.error(warning)
             raise TwisterRuntimeError(warning)
 
-        return subcases
+        return subcases, ztest_suite_names
 
     def parse_subcases(self, test_path):
-        results = self.scan_path(test_path)
-        for sub in results:
+        subcases, ztest_suite_names = self.scan_path(test_path)
+        for sub in subcases:
             name = "{}.{}".format(self.id, sub)
             self.cases.append(name)
 
-        if not results:
+        if not subcases:
             self.cases.append(self.id)
+
+        self.ztest_suite_names = ztest_suite_names
 
     def __str__(self):
         return self.name
