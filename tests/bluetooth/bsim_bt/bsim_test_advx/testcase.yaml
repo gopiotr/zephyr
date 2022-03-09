@@ -1,0 +1,4 @@
+tests:
+  bluetooth.bsim.advx:
+    platform_allow: nrf52_bsim
+    tags: bluetooth
