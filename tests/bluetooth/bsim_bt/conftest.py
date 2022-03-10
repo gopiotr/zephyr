@@ -1,8 +1,9 @@
 
 import pytest
+from test_utils.BabbleSimBuild import BabbleSimBuild
 
 def pytest_collect_file(parent, path):
-    if path.ext == ".yaml" or path.ext == ".yml" and path.basename.startswith("test"):
+    if path.basename.startswith("bs_testcase") and (path.ext == ".yaml" or path.ext == ".yml"):
         return YamlFile.from_parent(parent, fspath=path)
 
 
@@ -13,19 +14,23 @@ class YamlFile(pytest.File):
         with self.fspath.open() as file_handler:
             raw = yaml.safe_load(file_handler)
 
+        # pytest.set_trace()
+        test_path = self.fspath.dirpath()
         for testscenario_name, specification in raw["tests"].items():
-            yield YamlItem.from_parent(self, testscenario_name=testscenario_name, specification=specification)
+            yield YamlItem.from_parent(self, test_path=test_path, testscenario_name=testscenario_name, specification=specification)
 
 
 class YamlItem(pytest.Item):
-    def __init__(self, parent, testscenario_name, specification):
+    def __init__(self, parent, test_path, testscenario_name, specification):
         super().__init__(testscenario_name, parent)
+        self.test_path = test_path
         self.specification = specification
 
     def runtest(self):
-        # TODO: Build, run, verify
+        bs_builder = BabbleSimBuild(self.test_path)
+        exe_path = bs_builder.build()
         if False:
-            raise YamlException(self, name, value)
+            raise YamlException(self)
 
     def repr_failure(self, excinfo):
         """Called when self.runtest() raises an exception."""
