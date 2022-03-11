@@ -24,10 +24,10 @@ BOARD="${BOARD:-nrf52_bsim}"
 
 cd ${BSIM_OUT_PATH}/bin
 
-Execute ./bs_${BOARD}_tests_bluetooth_bsim_bt_bsim_test_advx_prj_conf \
+Execute ./bs_${BOARD}_bsim_test_advx_prj \
   -v=${verbosity_level} -s=${simulation_id} -d=0 -testid=advx
 
-Execute ./bs_${BOARD}_tests_bluetooth_bsim_bt_bsim_test_advx_prj_conf\
+Execute ./bs_${BOARD}_bsim_test_advx_prj \
   -v=${verbosity_level} -s=${simulation_id} -d=1 -testid=scanx
 
 Execute ./bs_2G4_phy_v1 -v=${verbosity_level} -s=${simulation_id} \
