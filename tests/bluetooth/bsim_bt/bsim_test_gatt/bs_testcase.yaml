@@ -1,4 +1,7 @@
 tests:
   bluetooth.bsim.gatt:
     platform_allow: nrf52_bsim
+    simulation_id: gatt  # TODO: change simulation_id to test name (which has to be unique)
+    testid_0: gatt_client
+    testid_1: gatt_server
     tags: bluetooth

@@ -27,11 +27,27 @@ class YamlItem(pytest.Item):
         self.test_path = test_path
         self.specification = specification
 
+        # TODO: change simulation_id to test name (which has to be unique)
+        if "simulation_id" in specification:
+            self.simulation_id = specification["simulation_id"]
+        else:
+            print("simulation_id not defined in bs_testcase.yaml!")
+            self.simulation_id = "simulation_id"
+
+        # TODO: Refactor for better handling of testid values
+        if "testid_0" in specification and "testid_1" in specification:
+            self.testid_0 = specification["testid_0"]
+            self.testid_1 = specification["testid_1"]
+        else:
+            print("testid not defined in bs_testcase.yaml!")
+            self.testid_0 = "testid_0"
+            self.testid_1 = "testid_1"
+
     def runtest(self):
         bs_builder = BabbleSimBuild(self.test_path)
         exe_path = bs_builder.build()
-        bs_runner = BabbleSimRun(exe_path)
-        bs_runner.run()
+        bs_runner = BabbleSimRun(self.simulation_id)
+        bs_runner.run(exe_path_0=exe_path, testid_0=self.testid_0, exe_path_1=exe_path, testid_1=self.testid_1)
         if False:
             raise YamlException(self)
 

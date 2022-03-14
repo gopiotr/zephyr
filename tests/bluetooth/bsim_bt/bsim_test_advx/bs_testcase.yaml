@@ -1,4 +1,7 @@
 tests:
   bluetooth.bsim.advx:
     platform_allow: nrf52_bsim
+    simulation_id: basic_advx  # TODO: change simulation_id to test name (which has to be unique)
+    testid_0: advx
+    testid_1: scanx
     tags: bluetooth
