@@ -1,6 +1,7 @@
 
 import pytest
 from test_utils.BabbleSimBuild import BabbleSimBuild
+from test_utils.BabbleSimRun import BabbleSimRun
 
 def pytest_collect_file(parent, path):
     if path.basename.startswith("bs_testcase") and (path.ext == ".yaml" or path.ext == ".yml"):
@@ -29,6 +30,8 @@ class YamlItem(pytest.Item):
     def runtest(self):
         bs_builder = BabbleSimBuild(self.test_path)
         exe_path = bs_builder.build()
+        bs_runner = BabbleSimRun(exe_path)
+        bs_runner.run()
         if False:
             raise YamlException(self)
 
