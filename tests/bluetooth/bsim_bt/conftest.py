@@ -1,7 +1,8 @@
-
 import pytest
+from test_utils.TestcaseYamlParser import TestcaseYamlParser
 from test_utils.BabbleSimBuild import BabbleSimBuild
 from test_utils.BabbleSimRun import BabbleSimRun
+
 
 def pytest_collect_file(parent, path):
     if path.basename.startswith("bs_testcase") and (path.ext == ".yaml" or path.ext == ".yml"):
@@ -10,44 +11,49 @@ def pytest_collect_file(parent, path):
 
 class YamlFile(pytest.File):
     def collect(self):
-        import yaml
-
-        with self.fspath.open() as file_handler:
-            raw = yaml.safe_load(file_handler)
-
-        # pytest.set_trace()
         test_path = self.fspath.dirpath()
-        for testscenario_name, specification in raw["tests"].items():
-            yield YamlItem.from_parent(self, test_path=test_path, testscenario_name=testscenario_name, specification=specification)
+
+        parser = TestcaseYamlParser()
+        yaml_data = parser.load(self.fspath)
+        testscenarios = yaml_data.get("tests", {})
+        for testscenario_name, testscenario_config in testscenarios.items():
+            if "bsim_config" not in testscenario_config:
+                continue
+            yield YamlItem.from_parent(
+                self,
+                test_path=test_path,
+                testscenario_name=testscenario_name,
+                testscenario_config=testscenario_config
+            )
 
 
 class YamlItem(pytest.Item):
-    def __init__(self, parent, test_path, testscenario_name, specification):
+    def __init__(self, parent, test_path, testscenario_name,
+                 testscenario_config):
         super().__init__(testscenario_name, parent)
         self.test_path = test_path
-        self.specification = specification
+        self.extra_build_args = testscenario_config.get("extra_args", [])
 
-        # TODO: change simulation_id to test name (which has to be unique)
-        if "simulation_id" in specification:
-            self.simulation_id = specification["simulation_id"]
-        else:
-            print("simulation_id not defined in bs_testcase.yaml!")
-            self.simulation_id = "simulation_id"
+        self.sim_id = testscenario_name.replace(".", "_")
 
-        # TODO: Refactor for better handling of testid values
-        if "testid_0" in specification and "testid_1" in specification:
-            self.testid_0 = specification["testid_0"]
-            self.testid_1 = specification["testid_1"]
-        else:
-            print("testid not defined in bs_testcase.yaml!")
-            self.testid_0 = "testid_0"
-            self.testid_1 = "testid_1"
+        bsim_config = testscenario_config["bsim_config"]
+        self.devices = bsim_config.get("devices", [])
+        self.medium = bsim_config.get("medium", {})
 
     def runtest(self):
-        bs_builder = BabbleSimBuild(self.test_path)
+        bs_builder = BabbleSimBuild(
+            self.test_path,
+            extra_build_args=self.extra_build_args
+        )
         exe_path = bs_builder.build()
-        bs_runner = BabbleSimRun(self.simulation_id)
-        bs_runner.run(exe_path_0=exe_path, testid_0=self.testid_0, exe_path_1=exe_path, testid_1=self.testid_1)
+
+        bs_runner = BabbleSimRun(
+            self.sim_id,
+            exe_path,
+            self.devices,
+            self.medium
+        )
+        bs_runner.run()
         if False:
             raise YamlException(self)
 

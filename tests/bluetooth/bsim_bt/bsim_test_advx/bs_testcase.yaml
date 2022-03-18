@@ -1,7 +1,23 @@
+# TODO: add handling of common option
+
 tests:
   bluetooth.bsim.advx:
     platform_allow: nrf52_bsim
-    simulation_id: basic_advx  # TODO: change simulation_id to test name (which has to be unique)
-    testid_0: advx
-    testid_1: scanx
     tags: bluetooth
+    # TODO: currently Twister accepts only args in one string (without -D),
+    #  so it should be discussed if this list of extra args started with "-D"
+    #  are acceptable
+    extra_args:
+      - '-DCMAKE_C_FLAGS="-Werror"'
+      - "-DCONFIG_COVERAGE=y"
+      - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+
+    bsim_config:
+      devices:
+        -
+          id: advx
+        -
+          id: scanx
+      medium:
+        name: bs_2G4_phy_v1
+        sim_length: 60e6
