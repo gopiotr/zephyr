@@ -1,9 +1,12 @@
+import logging
 import os
 import sys
 import subprocess
 from multiprocessing import Pool
-import shutil
 import pytest
+
+LOGGER_NAME = f"bsim_plugin.{__name__.split('.')[-1]}"
+logger = logging.getLogger(LOGGER_NAME)
 
 ZEPHYR_BASE = os.getenv("ZEPHYR_BASE")
 if not ZEPHYR_BASE:
@@ -13,14 +16,8 @@ BSIM_OUT_PATH = os.getenv("BSIM_OUT_PATH")
 if not BSIM_OUT_PATH:
     sys.exit("$BSIM_OUT_PATH environment variable undefined")
 
-bs_log_dir_general_name = "bs_out"
-bs_log_dir_general_path = os.path.join(ZEPHYR_BASE, bs_log_dir_general_name)
 
-
-def run_process(process_cmd, process_name, bs_cwd, bs_log_dir_path):
-    # TODO: use logger
-    # print(f"Run BabbleSim object with command:\n{process_cmd}")
-
+def run_process(process_cmd, process_name, bs_cwd, test_out_path):
     p = subprocess.Popen(
         process_cmd,
         cwd=bs_cwd,
@@ -30,12 +27,12 @@ def run_process(process_cmd, process_name, bs_cwd, bs_log_dir_path):
     stdout_data, stderr_data = p.communicate()
 
     out_file_name = f"{process_name}_out.log"
-    out_file_path = os.path.join(bs_log_dir_path, out_file_name)
+    out_file_path = os.path.join(test_out_path, out_file_name)
     with open(out_file_path, "wb") as file:
         file.write(stdout_data)
 
     err_file_name = f"{process_name}_err.log"
-    err_file_path = os.path.join(bs_log_dir_path, err_file_name)
+    err_file_path = os.path.join(test_out_path, err_file_name)
     with open(err_file_path, "wb") as file:
         file.write(stderr_data)
 
@@ -49,13 +46,12 @@ def run_process(process_cmd, process_name, bs_cwd, bs_log_dir_path):
 class BabbleSimRun:
     bsim_bin_path = os.path.join(BSIM_OUT_PATH, "bin")
 
-    def __init__(self, simulation_id, app_exe_path, devices_config,
-                 medium_config):
-        self.simulation_id = simulation_id
+    def __init__(self, test_out_path, sim_id, app_exe_path,
+                 devices_config, medium_config):
+        self.sim_id = sim_id
         self.devices = self._define_devices(app_exe_path, devices_config)
         self.medium = Medium(self.bsim_bin_path, medium_config, len(self.devices))
-        self.bs_log_dir_path = \
-            os.path.join(bs_log_dir_general_path, simulation_id)
+        self.test_out_path = test_out_path
 
     def _define_devices(self, app_exe_path, devices_config):
         devices = []
@@ -63,34 +59,29 @@ class BabbleSimRun:
             devices.append(Device(app_exe_path, device_no, device_config))
         return devices
 
-    def _clean_log_directory(self):
-        # TODO: do not clean log directory but move them to "historical" folder
-        if os.path.exists(self.bs_log_dir_path) and \
-                os.path.isdir(self.bs_log_dir_path):
-            shutil.rmtree(self.bs_log_dir_path)
-        os.makedirs(self.bs_log_dir_path, exist_ok=True)
-
     def run(self):
-
-        # TODO: do not clean log directory but move them to "historical" folder
-        self._clean_log_directory()
-
         run_apps_pool_args = []
         for device in self.devices:
             run_app_pool_args = [
-                device.get_cmd(self.simulation_id),
+                device.get_cmd(self.sim_id),
                 f"{device.id}",
                 self.bsim_bin_path,
-                self.bs_log_dir_path
+                self.test_out_path
             ]
             run_apps_pool_args.append(run_app_pool_args)
 
         run_medium_pool_args = [
-            self.medium.get_cmd(self.simulation_id),
+            self.medium.get_cmd(self.sim_id),
             f"{self.medium.name}",
             self.bsim_bin_path,
-            self.bs_log_dir_path
+            self.test_out_path
         ]
+
+        device_cmd_logs = [" ".join(args[0]) for args in run_apps_pool_args]
+        device_cmd_log = " &\n".join(device_cmd_logs)
+        medium_cmd_log = " ".join(run_medium_pool_args[0])
+        bsim_cmd_log = f"{device_cmd_log} &\n{medium_cmd_log}"
+        logger.info("Run BabbleSim simulation with commands: \n%s", bsim_cmd_log)
 
         number_processes = len(self.devices) + 1  # devices + medium
         pool = Pool(processes=number_processes)
@@ -107,12 +98,14 @@ class BabbleSimRun:
 
         for run_app_result in run_app_results:
             if run_app_result.get() != 0:
-                # TODO: use logger
-                print(run_app_result.get())
+                logger.error("Error during run simulated device. For more "
+                             "information analyze logs from directory: \n%s",
+                             self.test_out_path)
 
         if run_medium_result.get() != 0:
-            # TODO: use logger
-            print(run_medium_result.get())
+            logger.error("Error during run simulated medium. For more "
+                         "information analyze logs from directory: \n%s",
+                         self.test_out_path)
 
 
 class Device:
@@ -122,9 +115,9 @@ class Device:
         self.id = device_config["id"]
         self.extra_run_args = device_config.get("extra_run_args", [])
 
-    def get_cmd(self, simulation_id):
+    def get_cmd(self, sim_id):
         run_app_args = [
-            f'-s={simulation_id}',
+            f'-s={sim_id}',
             f'-d={self.device_no}',
             f'-testid={self.id}'
         ]
@@ -141,9 +134,9 @@ class Medium:
         self.number_devices = number_devices
         self.extra_run_args = medium_config.get("extra_run_args", [])
 
-    def get_cmd(self, simulation_id):
+    def get_cmd(self, sim_id):
         run_medium_args = [
-            f'-s={simulation_id}',
+            f'-s={sim_id}',
             f'-D={self.number_devices}',
             f'-sim_length={self.sim_length}'
         ]

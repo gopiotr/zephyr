@@ -1,9 +1,13 @@
+import logging
 import os
 import sys
 import stat
 import subprocess
 import shutil
 import pytest
+
+LOGGER_NAME = f"bsim_plugin.{__name__.split('.')[-1]}"
+logger = logging.getLogger(LOGGER_NAME)
 
 ZEPHYR_BASE = os.getenv("ZEPHYR_BASE")
 if not ZEPHYR_BASE:
@@ -15,7 +19,6 @@ if not BSIM_OUT_PATH:
 
 
 class BabbleSimBuild:
-    build_dir = os.path.join(ZEPHYR_BASE, "build")
     board_root = ZEPHYR_BASE
     board = "nrf52_bsim"
     cmake_generator = "Ninja"
@@ -23,9 +26,10 @@ class BabbleSimBuild:
     extra_ninja_args = []
     bsim_bin_path = os.path.join(BSIM_OUT_PATH, "bin")
 
-    def __init__(self, test_path, extra_build_args=None):
-        self.test_path = test_path
-        self.test_name = os.path.basename(test_path)
+    def __init__(self, test_src_path, test_out_path, sim_id, extra_build_args=None):
+        self.test_src_path = test_src_path
+        self.sim_id = sim_id
+        self.build_dir = os.path.join(test_out_path, "build")
         self.extra_build_args = [] if extra_build_args is None else extra_build_args
         self.conf_file_name = self._get_conf_file_name()
         self.built_exe_path = ""
@@ -50,10 +54,9 @@ class BabbleSimBuild:
             shutil.rmtree(self.build_dir)
 
     def _run_cmake(self):
-        # TODO: refactor this constant variables to be more customizable
         cmake_args = [
             f"-B{self.build_dir}",
-            f"-S{self.test_path}",
+            f"-S{self.test_src_path}",
             f"-G{self.cmake_generator}",
             f"-DBOARD_ROOT={self.board_root}",
             f"-DBOARD={self.board}",
@@ -64,8 +67,8 @@ class BabbleSimBuild:
         cmake_exe = shutil.which("cmake")
         cmake_cmd = [cmake_exe] + cmake_args
 
-        # TODO: use logger
-        # print(f"Run CMake with command:\n{cmake_cmd}")
+        cmake_cmd_log = " ".join(cmake_cmd)
+        logger.info("Run CMake with command: \n%s", cmake_cmd_log)
 
         p = subprocess.Popen(
             cmake_cmd,
@@ -74,11 +77,11 @@ class BabbleSimBuild:
         )
         stdout_data, stderr_data = p.communicate()
 
+        self._save_logs("cmake", stdout_data, stderr_data)
+
         if p.returncode != 0:
-            # TODO: use logger
-            print(p.returncode)
-            print(stdout_data)
-            print(stderr_data)
+            logger.error("CMake error \nstdout_data: \n%s \nstderr_data: \n%s",
+                         stdout_data, stderr_data)
             raise subprocess.CalledProcessError
 
     def _run_ninja(self):
@@ -91,27 +94,32 @@ class BabbleSimBuild:
         ninja_exe = shutil.which("ninja")
         ninja_cmd = [ninja_exe] + ninja_args
 
+        ninja_cmd_log = " ".join(ninja_cmd)
+        logger.info("Run Ninja with command: \n%s", ninja_cmd_log)
+
         p = subprocess.Popen(
             ninja_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
-
         stdout_data, stderr_data = p.communicate()
 
+        self._save_logs("ninja", stdout_data, stderr_data)
+
         if p.returncode != 0:
-            # TODO: use logger
-            print(p.returncode)
-            print(stdout_data)
-            print(stderr_data)
+            logger.error("Ninja error \nstdout_data: \n%s \nstderr_data: \n%s",
+                         stdout_data, stderr_data)
             raise subprocess.CalledProcessError
 
     def _copy_exe(self):
-        conf_file_basename = os.path.splitext(self.conf_file_name)[0]
-        dst_exe_name = f"bs_{self.board}_{self.test_name}_{conf_file_basename}"
-
         current_exe_path = os.path.join(self.build_dir, "zephyr", "zephyr.exe")
+
+        dst_exe_name = f"bs_{self.board}_{self.sim_id}"
         dst_exe_path = os.path.join(self.bsim_bin_path, dst_exe_name)
+
+        logger.info("Copy exe file: \nsrc: %s \ndst: %s",
+                    current_exe_path, dst_exe_path)
+
         shutil.copyfile(current_exe_path, dst_exe_path)
 
         # TODO: check why after copying user cannot execute program and if is
@@ -120,6 +128,19 @@ class BabbleSimBuild:
         os.chmod(dst_exe_path, st.st_mode | stat.S_IEXEC)
 
         self.built_exe_path = dst_exe_path
+
+    def _save_logs(self, base_file_name, stdout_data, stderr_data):
+        out_file_name = f"{base_file_name}_out.log"
+        out_file_path = os.path.join(self.build_dir, out_file_name)
+        with open(out_file_path, "wb") as file:
+            file.write(stdout_data)
+
+        err_file_name = f"{base_file_name}_err.log"
+        err_file_path = os.path.join(self.build_dir, err_file_name)
+        with open(err_file_path, "wb") as file:
+            file.write(stderr_data)
+
+        logger.info("Logs saved at: \n%s\n%s", out_file_path, err_file_path)
 
     def build(self):
         self._clean_build_folder()
