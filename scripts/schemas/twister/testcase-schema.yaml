@@ -94,6 +94,9 @@ mapping:
       "platform_allow":
         type: str
         required: false
+      "post_erase":
+        type: bool
+        required: false
       "tags":
         type: str
         required: false
@@ -226,6 +229,9 @@ mapping:
             required: false
           "platform_allow":
             type: str
+            required: false
+          "post_erase":
+            type: bool
             required: false
           "tags":
             type: str

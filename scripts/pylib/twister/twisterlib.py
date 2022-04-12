@@ -989,10 +989,66 @@ class DeviceHandler(Handler):
 
         self._final_handle_actions(harness, handler_time)
 
+        if self.instance.testcase.post_erase:
+            self._post_erase(hardware)
+
         if post_script:
             self.run_custom_script(post_script, 30)
 
         self.make_device_available(serial_device)
+
+    def _post_erase(self, hardware):
+        hello_world_build_path = os.path.join(self.build_dir, "hello_world")
+        self._build_hello_world(hello_world_build_path, hardware)
+
+        command = [
+            "west", "flash",
+            "--erase",
+            "--skip-rebuild",
+            "-d", hello_world_build_path
+        ]
+
+        command_log = " ".join(command)
+        logger.debug('West flash erase command: \n%s', command_log)
+
+        p = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout_data, stderr_data = p.communicate()
+
+        if p.returncode != 0:
+            logger.error(p.returncode)
+            logger.error(stdout_data)
+            logger.error(stderr_data)
+
+    def _build_hello_world(self, hello_world_build_path, hardware):
+        hello_world_src_path = os.path.join(ZEPHYR_BASE, "samples", "hello_world")
+
+        command = [
+            "west", "build",
+            "-p",
+            "-b", hardware.platform,
+            "-d", hello_world_build_path,
+            hello_world_src_path
+        ]
+
+        command_log = " ".join(command)
+        logger.debug('West build command: \n%s', command_log)
+
+        p = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout_data, stderr_data = p.communicate()
+
+        if p.returncode != 0:
+            logger.error(p.returncode)
+            logger.error(stdout_data)
+            logger.error(stderr_data)
+
 
 
 class QEMUHandler(Handler):
@@ -2942,6 +2998,7 @@ class TestSuite(DisablePyTestCollectionMixin):
                        "integration_platforms": {"type": "list", "default": []},
                        "platform_exclude": {"type": "set"},
                        "platform_allow": {"type": "set"},
+                       "post_erase": {"type": "bool", "default": False},
                        "toolchain_exclude": {"type": "set"},
                        "toolchain_allow": {"type": "set"},
                        "filter": {"type": "str"},
@@ -3299,6 +3356,7 @@ class TestSuite(DisablePyTestCollectionMixin):
                         tc.skip = tc_dict["skip"]
                         tc.platform_exclude = tc_dict["platform_exclude"]
                         tc.platform_allow = tc_dict["platform_allow"]
+                        tc.post_erase = tc_dict["post_erase"]
                         tc.toolchain_exclude = tc_dict["toolchain_exclude"]
                         tc.toolchain_allow = tc_dict["toolchain_allow"]
                         tc.tc_filter = tc_dict["filter"]
