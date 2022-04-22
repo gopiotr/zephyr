@@ -1,0 +1,98 @@
+# TODO: add handling of common option
+
+tests:
+  bluetooth.bsim.app_encrypted_split_privacy:
+    platform_allow: nrf52_bsim
+    tags: bluetooth
+    extra_args:
+      - "-DCONF_FILE=prj_split_privacy.conf"
+      - '-DCMAKE_C_FLAGS="-Werror"'
+      - "-DCONFIG_COVERAGE=y"
+      - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    bsim_config:
+      devices:
+        -
+          id: peripheral
+          extra_run_args:
+            - "-RealEncryption=1"
+            - "-rs=23"
+        -
+          id: central_encrypted
+          extra_run_args:
+            - "-RealEncryption=1"
+            - "-rs=6"
+      medium:
+        name: bs_2G4_phy_v1
+        sim_length: 20e6
+
+  bluetooth.bsim.app_encrypted_split:
+    platform_allow: nrf52_bsim
+    tags: bluetooth
+    extra_args:
+      - "-DCONF_FILE=prj_split.conf"
+      - '-DCMAKE_C_FLAGS="-Werror"'
+      - "-DCONFIG_COVERAGE=y"
+      - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    bsim_config:
+      devices:
+        -
+          id: peripheral
+          extra_run_args:
+            - "-RealEncryption=1"
+            - "-rs=23"
+        -
+          id: central_encrypted
+          extra_run_args:
+            - "-RealEncryption=1"
+            - "-rs=6"
+      medium:
+        name: bs_2G4_phy_v1
+        sim_length: 20e6
+
+  bluetooth.bsim.app_split_low_lat:
+    platform_allow: nrf52_bsim
+    tags: bluetooth
+    extra_args:
+      - "-DCONF_FILE=prj_split_low_lat.conf"
+      - '-DCMAKE_C_FLAGS="-Werror"'
+      - "-DCONFIG_COVERAGE=y"
+      - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    bsim_config:
+      devices:
+        -
+          id: peripheral
+          extra_run_args:
+            - "-RealEncryption=0"
+            - "-rs=23"
+        -
+          id: central
+          extra_run_args:
+            - "-RealEncryption=0"
+            - "-rs=6"
+      medium:
+        name: bs_2G4_phy_v1
+        sim_length: 20e6
+
+  bluetooth.bsim.app_split:
+    platform_allow: nrf52_bsim
+    tags: bluetooth
+    extra_args:
+      - "-DCONF_FILE=prj_split.conf"
+      - '-DCMAKE_C_FLAGS="-Werror"'
+      - "-DCONFIG_COVERAGE=y"
+      - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    bsim_config:
+      devices:
+        -
+          id: peripheral
+          extra_run_args:
+            - "-RealEncryption=0"
+            - "-rs=23"
+        -
+          id: central
+          extra_run_args:
+            - "-RealEncryption=0"
+            - "-rs=6"
+      medium:
+        name: bs_2G4_phy_v1
+        sim_length: 20e6
