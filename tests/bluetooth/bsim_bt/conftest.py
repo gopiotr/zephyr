@@ -113,6 +113,8 @@ class YamlItem(pytest.Item):
     def runtest(self):
         logger.info("Start test: %s", self.name)
 
+        os.makedirs(self.test_out_path)
+
         bs_builder = BabbleSimBuild(
             self.test_src_path,
             self.test_out_path,
@@ -120,8 +122,12 @@ class YamlItem(pytest.Item):
             extra_build_args=self.extra_build_args
         )
         exe_path = bs_builder.build()
-        # TODO: remove below mock (for test only)
-        # exe_path = "/home/redbeard/bsim/bin/bs_nrf52_bsim_bluetooth_bsim_gatt"
+
+        # # TODO: remove below mock (for test only)
+        # BSIM_OUT_PATH = os.getenv("BSIM_OUT_PATH")
+        # bsim_bin_path = os.path.join(BSIM_OUT_PATH, "bin")
+        # exe_name = f"bs_nrf52_bsim_{self.sim_id}"
+        # exe_path = os.path.join(bsim_bin_path, exe_name)
 
         bs_runner = BabbleSimRun(
             self.test_out_path,
