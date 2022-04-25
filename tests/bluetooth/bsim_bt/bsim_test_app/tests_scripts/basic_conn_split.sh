@@ -14,7 +14,14 @@ function Execute(){
  compile it?)\e[39m"
     exit 1
   fi
-  timeout 5 $@ & process_ids="$process_ids $!"
+
+  test_id=`echo "$6" | cut -c 9-`
+  log_dir_path="/home/redbeard/zephyrproject/zephyr/bsim_bt_out/parallel_tests_output/${simulation_id}"
+  mkdir -p ${log_dir_path}
+  out_file_path="${log_dir_path}/${test_id}_out.log"
+  err_file_path="${log_dir_path}/${test_id}_err.log"
+
+  timeout 5 $@ 1>$out_file_path 2> $err_file_path & process_ids="$process_ids $!"
 }
 
 : "${BSIM_OUT_PATH:?BSIM_OUT_PATH must be defined}"
