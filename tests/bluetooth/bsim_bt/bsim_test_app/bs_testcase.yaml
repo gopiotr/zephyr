@@ -34,6 +34,7 @@ tests:
       - "-DCONFIG_COVERAGE=y"
       - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
     bsim_config:
+      built_exe_name: "bs_nrf52_bsim_bluetooth_bsim_app_split"
       devices:
         -
           id: peripheral
@@ -82,6 +83,7 @@ tests:
       - "-DCONFIG_COVERAGE=y"
       - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
     bsim_config:
+      built_exe_name: "bs_nrf52_bsim_bluetooth_bsim_app_split"
       devices:
         -
           id: peripheral

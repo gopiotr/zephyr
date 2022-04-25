@@ -109,6 +109,11 @@ class YamlItem(pytest.Item):
         bsim_config = testscenario_config["bsim_config"]
         self.devices = bsim_config.get("devices", [])
         self.medium = bsim_config.get("medium", {})
+        self.built_exe_name = bsim_config.get("built_exe_name")
+
+        build_info_file_name = "build_info.json"
+        self.build_info_file_path = \
+            os.path.join(BSIM_TESTS_OUT_DIR_PATH, build_info_file_name)
 
     def runtest(self):
         logger.info("Start test: %s", self.name)
@@ -118,10 +123,13 @@ class YamlItem(pytest.Item):
         bs_builder = BabbleSimBuild(
             self.test_src_path,
             self.test_out_path,
+            self.build_info_file_path,
             self.sim_id,
-            extra_build_args=self.extra_build_args
+            self.extra_build_args,
+            self.built_exe_name
         )
-        exe_path = bs_builder.build()
+        bs_builder.build()
+        exe_path = bs_builder.get_built_exe_path()
 
         # # TODO: remove below mock (for test only)
         # BSIM_OUT_PATH = os.getenv("BSIM_OUT_PATH")

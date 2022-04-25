@@ -26,13 +26,24 @@ class BabbleSimBuild:
     extra_ninja_args = []
     bsim_bin_path = os.path.join(BSIM_OUT_PATH, "bin")
 
-    def __init__(self, test_src_path, test_out_path, sim_id, extra_build_args=None):
+    def __init__(self, test_src_path, test_out_path, build_info_file_path, sim_id, extra_build_args=None, built_exe_name=None):
         self.test_src_path = test_src_path
-        self.sim_id = sim_id
         self.build_dir = os.path.join(test_out_path, "build")
-        self.extra_build_args = [] if extra_build_args is None else extra_build_args
+        self.build_info_file_path = build_info_file_path
+
+        if extra_build_args is None:
+            self.extra_build_args = []
+        else:
+            self.extra_build_args = extra_build_args
+
         self.conf_file_name = self._get_conf_file_name()
-        self.built_exe_path = ""
+
+        if built_exe_name is None:
+            built_exe_name = f"bs_{self.board}_{sim_id}"
+        self.built_exe_path = os.path.join(self.bsim_bin_path, built_exe_name)
+
+    def get_built_exe_path(self):
+        return self.built_exe_path
 
     def _get_conf_file_name(self):
         """
@@ -52,6 +63,14 @@ class BabbleSimBuild:
     def _clean_build_folder(self):
         if os.path.exists(self.build_dir) and os.path.isdir(self.build_dir):
             shutil.rmtree(self.build_dir)
+
+    def _check_build_status(self):
+        # TODO: write build status checking
+        return False
+
+    def _update_build_status(self):
+        # TODO: write build status update
+        pass
 
     def _run_cmake(self):
         cmake_args = [
@@ -114,8 +133,7 @@ class BabbleSimBuild:
     def _copy_exe(self):
         current_exe_path = os.path.join(self.build_dir, "zephyr", "zephyr.exe")
 
-        dst_exe_name = f"bs_{self.board}_{self.sim_id}"
-        dst_exe_path = os.path.join(self.bsim_bin_path, dst_exe_name)
+        dst_exe_path = self.built_exe_path
 
         logger.info("Copy exe file: \nsrc: %s \ndst: %s",
                     current_exe_path, dst_exe_path)
@@ -126,8 +144,6 @@ class BabbleSimBuild:
         #  simpler method to give this access?
         st = os.stat(dst_exe_path)
         os.chmod(dst_exe_path, st.st_mode | stat.S_IEXEC)
-
-        self.built_exe_path = dst_exe_path
 
     def _save_logs(self, base_file_name, stdout_data, stderr_data):
         out_file_name = f"{base_file_name}_out.log"
@@ -144,7 +160,9 @@ class BabbleSimBuild:
 
     def build(self):
         self._clean_build_folder()
-        self._run_cmake()
-        self._run_ninja()
-        self._copy_exe()
-        return self.built_exe_path
+        already_built_flag = self._check_build_status()
+        if not already_built_flag:
+            self._run_cmake()
+            self._run_ninja()
+            self._copy_exe()
+            self._update_build_status()

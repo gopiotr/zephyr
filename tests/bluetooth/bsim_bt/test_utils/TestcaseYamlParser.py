@@ -22,6 +22,7 @@ class TestcaseYamlParser:
                     Optional("extra_run_args"): Seq(Str()),
                 }
             ),
+            Optional("built_exe_name"): Str(),
         }
     )
 
