@@ -146,17 +146,22 @@ class BabbleSimBuild:
         os.chmod(dst_exe_path, st.st_mode | stat.S_IEXEC)
 
     def _save_logs(self, base_file_name, stdout_data, stderr_data):
+        all_log_file_paths = ""
+
         out_file_name = f"{base_file_name}_out.log"
         out_file_path = os.path.join(self.build_dir, out_file_name)
         with open(out_file_path, "wb") as file:
             file.write(stdout_data)
+        all_log_file_paths += f"\n{out_file_path}"
 
-        err_file_name = f"{base_file_name}_err.log"
-        err_file_path = os.path.join(self.build_dir, err_file_name)
-        with open(err_file_path, "wb") as file:
-            file.write(stderr_data)
+        if stderr_data:
+            err_file_name = f"{base_file_name}_err.log"
+            err_file_path = os.path.join(self.build_dir, err_file_name)
+            with open(err_file_path, "wb") as file:
+                file.write(stderr_data)
+            all_log_file_paths += f"\n{err_file_path}"
 
-        logger.info("Logs saved at: \n%s\n%s", out_file_path, err_file_path)
+        logger.info("Logs saved at: %s", all_log_file_paths)
 
     def build(self):
         self._clean_build_folder()

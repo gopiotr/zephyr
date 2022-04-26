@@ -64,17 +64,20 @@ class BabbleSimRun:
         number_processes = len(self.devices) + 1  # devices + medium
         pool = mp.Pool(processes=number_processes)
 
-        run_app_results = []
+        run_app_results = {}
         for run_app_pool_args in run_apps_pool_args:
             run_app_result = pool.apply_async(run_process, run_app_pool_args)
-            run_app_results.append(run_app_result)
+            process_name = run_app_pool_args[1]
+            run_app_results.update({process_name: run_app_result})
 
         run_medium_result = pool.apply_async(run_process, run_medium_pool_args)
 
         pool.close()
         pool.join()
 
-        self._log_run_bsim_result(run_app_results, run_medium_result)
+        self._log_run_bsim_results(run_app_results, run_medium_result)
+
+        self._verify_run_bsim_results(run_app_results, run_medium_result)
 
     def _get_apps_pool_args(self):
         run_apps_pool_args = []
@@ -113,17 +116,28 @@ class BabbleSimRun:
         logger.info("Run BabbleSim simulation with commands: \n%s",
                     bsim_cmd_log)
 
-    def _log_run_bsim_result(self, run_app_results, run_medium_result):
-        error_msg = f"Error during run BabbleSim simulation. For more " \
-                    f"information analyze logs from directory: \n" \
-                    f"{self.test_out_path}"
+    def _log_run_bsim_results(self, run_app_results, run_medium_result):
+        general_error_msg = f"Error during run BabbleSim simulation. For " \
+                            f"more information analyze logs: \n" \
 
-        for run_app_result in run_app_results:
+        for process_name, run_app_result in run_app_results.items():
             if run_app_result.get() != 0:
+                log_files_path = \
+                    os.path.join(self.test_out_path, f"{process_name}_*.log")
+                error_msg = f"{general_error_msg}{log_files_path}"
                 logger.error(error_msg)
 
         if run_medium_result.get() != 0:
+            log_files_path = \
+                os.path.join(self.test_out_path, f"{self.medium.name}_*.log")
+            error_msg = f"{general_error_msg}{log_files_path}"
             logger.error(error_msg)
+
+    def _verify_run_bsim_results(self, run_app_results, run_medium_result):
+        for run_app_result in run_app_results.values():
+            assert run_app_result.get() == 0
+
+        assert run_medium_result.get() == 0
 
 
 class Device:
