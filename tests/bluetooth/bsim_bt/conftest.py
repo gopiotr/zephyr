@@ -3,6 +3,7 @@ import sys
 import logging
 import shutil
 import pytest
+import json
 from test_utils.TestcaseYamlParser import TestcaseYamlParser
 from test_utils.BabbleSimBuild import BabbleSimBuild
 from test_utils.BabbleSimRun import BabbleSimRun
@@ -16,6 +17,8 @@ if not ZEPHYR_BASE:
 
 BSIM_TESTS_OUT_DIR_NAME = "bsim_tests_out"
 BSIM_TESTS_OUT_DIR_PATH = os.path.join(ZEPHYR_BASE, BSIM_TESTS_OUT_DIR_NAME)
+BUILD_INFO_FILE_NAME = "build_info.json"
+BUILD_INFO_FILE_PATH = os.path.join(BSIM_TESTS_OUT_DIR_PATH, BUILD_INFO_FILE_NAME)
 
 
 def prepare_bsim_test_out_dir():
@@ -68,6 +71,8 @@ def pytest_configure(config):
     if not is_worker_input:
         prepare_bsim_test_out_dir()
     setup_logger(config)
+    with open(BUILD_INFO_FILE_PATH, 'w', encoding='utf-8') as file:
+        json.dump({}, file, indent=4)
 
 
 def pytest_collect_file(parent, path):
@@ -110,10 +115,7 @@ class YamlItem(pytest.Item):
         self.devices = bsim_config.get("devices", [])
         self.medium = bsim_config.get("medium", {})
         self.built_exe_name = bsim_config.get("built_exe_name")
-
-        build_info_file_name = "build_info.json"
-        self.build_info_file_path = \
-            os.path.join(BSIM_TESTS_OUT_DIR_PATH, build_info_file_name)
+        self.build_info_file_path = BUILD_INFO_FILE_PATH
 
     def runtest(self):
         logger.info("Start test: %s", self.name)
