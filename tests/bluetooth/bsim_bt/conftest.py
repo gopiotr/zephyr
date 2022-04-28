@@ -80,6 +80,14 @@ def pytest_collect_file(parent, path):
         return YamlFile.from_parent(parent, fspath=path)
 
 
+def pytest_unconfigure(config):
+    is_worker_input = hasattr(config, 'workerinput')  # xdist worker
+    if not is_worker_input:
+        build_info_lock_path = f"{BUILD_INFO_FILE_PATH}.lock"
+        if os.path.exists(build_info_lock_path) and os.path.isfile(build_info_lock_path):
+            os.remove(build_info_lock_path)
+
+
 class YamlFile(pytest.File):
     def collect(self):
         test_src_path = self.fspath.dirpath()

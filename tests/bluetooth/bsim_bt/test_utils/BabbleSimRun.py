@@ -17,8 +17,8 @@ if not BSIM_OUT_PATH:
     sys.exit("$BSIM_OUT_PATH environment variable undefined")
 
 
-def run_process(process_cmd, process_name, bs_cwd, test_out_path):
-    ps_logger = ProcessLogger(test_out_path, process_name, debug_enable=False)
+def run_process(process_cmd, bs_cwd, log_file_base_path):
+    ps_logger = ProcessLogger(log_file_base_path, debug_enable=False)
 
     p = subprocess.Popen(
         process_cmd,
@@ -41,15 +41,14 @@ class BabbleSimRun:
     def __init__(self, test_out_path, sim_id, app_exe_path,
                  devices_config, medium_config):
         self.sim_id = sim_id
-        self.devices = self._define_devices(app_exe_path, devices_config)
-        self.medium = Medium(self.bsim_bin_path, medium_config, len(self.devices))
         self.test_out_path = test_out_path
+        self.devices = self._define_devices(app_exe_path, devices_config)
+        self.medium = Medium(self.bsim_bin_path, len(self.devices), medium_config, self.test_out_path)
 
-    @staticmethod
-    def _define_devices(app_exe_path, devices_config):
+    def _define_devices(self, app_exe_path, devices_config):
         devices = []
         for device_no, device_config in enumerate(devices_config):
-            devices.append(Device(app_exe_path, device_no, device_config))
+            devices.append(Device(app_exe_path, device_no, device_config, self.test_out_path))
         return devices
 
     def run(self):
@@ -64,18 +63,17 @@ class BabbleSimRun:
         number_processes = len(self.devices) + 1  # devices + medium
         pool = mp.Pool(processes=number_processes)
 
-        run_app_results = {}
+        run_app_results = []
         for run_app_pool_args in run_apps_pool_args:
             run_app_result = pool.apply_async(run_process, run_app_pool_args)
-            process_name = run_app_pool_args[1]
-            run_app_results.update({process_name: run_app_result})
+            run_app_results.append(run_app_result)
 
         run_medium_result = pool.apply_async(run_process, run_medium_pool_args)
 
         pool.close()
         pool.join()
 
-        self._log_run_bsim_results(run_app_results, run_medium_result)
+        self._save_run_bsim_info_log()
 
         self._verify_run_bsim_results(run_app_results, run_medium_result)
 
@@ -88,22 +86,21 @@ class BabbleSimRun:
 
     def _get_app_pool_args(self, device):
         process_cmd = device.get_cmd(self.sim_id)
-        process_name = f"{device.id}"
-        run_app_pool_args = self._get_pool_args(process_cmd, process_name)
+        log_file_base_path = device.log_file_base_path
+        run_app_pool_args = self._get_pool_args(process_cmd, log_file_base_path)
         return run_app_pool_args
 
     def _get_medium_pool_args(self):
         process_cmd = self.medium.get_cmd(self.sim_id)
-        process_name = f"{self.medium.name}"
-        run_medium_pool_args = self._get_pool_args(process_cmd, process_name)
+        log_file_base_path = self.medium.log_file_base_path
+        run_medium_pool_args = self._get_pool_args(process_cmd, log_file_base_path)
         return run_medium_pool_args
 
-    def _get_pool_args(self, process_cmd, process_name):
+    def _get_pool_args(self, process_cmd, log_file_base_path):
         run_pool_args = [
             process_cmd,
-            process_name,
             self.bsim_bin_path,
-            self.test_out_path
+            log_file_base_path
         ]
         return run_pool_args
 
@@ -116,36 +113,39 @@ class BabbleSimRun:
         logger.info("Run BabbleSim simulation with commands: \n%s",
                     bsim_cmd_log)
 
-    def _log_run_bsim_results(self, run_app_results, run_medium_result):
-        general_error_msg = f"Error during run BabbleSim simulation. For " \
-                            f"more information analyze logs: \n" \
+    def _save_run_bsim_info_log(self):
+        general_log_msg = f"Logs saved at:"
 
-        for process_name, run_app_result in run_app_results.items():
-            if run_app_result.get() != 0:
-                log_files_path = \
-                    os.path.join(self.test_out_path, f"{process_name}_*.log")
-                error_msg = f"{general_error_msg}{log_files_path}"
-                logger.error(error_msg)
+        for device in self.devices:
+            general_log_msg += f"\n{device.log_file_base_path}_*.log"
 
-        if run_medium_result.get() != 0:
-            log_files_path = \
-                os.path.join(self.test_out_path, f"{self.medium.name}_*.log")
-            error_msg = f"{general_error_msg}{log_files_path}"
-            logger.error(error_msg)
+        general_log_msg += f"\n{self.medium.log_file_base_path}_*.log"
+        
+        logger.info(general_log_msg)
 
     def _verify_run_bsim_results(self, run_app_results, run_medium_result):
-        for run_app_result in run_app_results.values():
-            assert run_app_result.get() == 0
+        fail_occur_flag = False
 
-        assert run_medium_result.get() == 0
+        for run_app_result in run_app_results:
+            if run_app_result.get() != 0:
+                fail_occur_flag = True
+
+        if run_medium_result.get() != 0:
+            fail_occur_flag = True
+
+        if fail_occur_flag:
+            logger.error("Some fail occur during run BabbleSim simulation.")
+
+        assert fail_occur_flag == False
 
 
 class Device:
-    def __init__(self, exe_path, device_no, device_config):
+    def __init__(self, exe_path, device_no, device_config, test_out_path):
         self.exe_path = exe_path
         self.device_no = device_no
         self.id = device_config["id"]
         self.extra_run_args = device_config.get("extra_run_args", [])
+        self.log_file_base_path = os.path.join(test_out_path, self.id)
 
     def get_cmd(self, sim_id):
         run_app_args = [
@@ -159,12 +159,13 @@ class Device:
 
 
 class Medium:
-    def __init__(self, bsim_bin_path, medium_config, number_devices):
+    def __init__(self, bsim_bin_path, number_devices, medium_config, test_out_path):
         self.name = medium_config["name"]
         self.exe_medium_path = os.path.join(bsim_bin_path, self.name)
         self.sim_length = medium_config["sim_length"]
         self.number_devices = number_devices
         self.extra_run_args = medium_config.get("extra_run_args", [])
+        self.log_file_base_path = os.path.join(test_out_path, self.name)
 
     def get_cmd(self, sim_id):
         run_medium_args = [
@@ -178,16 +179,14 @@ class Medium:
 
 
 class ProcessLogger:
-    def __init__(self, test_out_path, process_name, debug_enable=False):
-        out_file_name = f"{process_name}_out.log"
-        self.out_file_path = os.path.join(test_out_path, out_file_name)
+    def __init__(self, log_file_base_path, debug_enable=False):
+        self.out_file_path = f"{log_file_base_path}_out.log"
 
-        err_file_name = f"{process_name}_err.log"
-        self.err_file_path = os.path.join(test_out_path, err_file_name)
+        self.err_file_path = f"{log_file_base_path}_err.log"
 
-        debug_file_name = f"{process_name}_debug.log"
-        self.debug_file_path = os.path.join(test_out_path, debug_file_name)
+        self.debug_file_path = f"{log_file_base_path}_debug.log"
         self.debug_enable = debug_enable
+        process_name = os.path.basename(log_file_base_path)
         self.save_debug_log(f"Debug logger for process: {process_name}, "
                             f"with PID: {os.getpid()}\n\n")
 
