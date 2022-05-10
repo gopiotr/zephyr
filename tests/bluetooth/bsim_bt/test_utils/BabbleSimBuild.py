@@ -209,11 +209,12 @@ class BabbleSimBuild:
     def build(self):
         self._clean_build_folder()
         already_built_flag = self._check_build_status()
-        if not already_built_flag:
-            self._run_cmake()
-            self._run_ninja()
-            self._copy_exe()
-            self._update_build_status()
+        if already_built_flag:
+            return
+        self._run_cmake()
+        self._run_ninja()
+        self._copy_exe()
+        self._update_build_status()
 
 
 class BuildStatus:

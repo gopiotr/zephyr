@@ -1,38 +1,37 @@
-# TODO: add handling of common option
+common:
+  extra_args:
+    - '-DCMAKE_C_FLAGS="-Werror"'
+    - "-DCONFIG_COVERAGE=y"
+    - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+  platform_allow:
+    - nrf52_bsim
+  tags: 
+    - bluetooth
 
 tests:
-  bluetooth.bsim.app_encrypted_split_privacy:
-    platform_allow: nrf52_bsim
-    tags: bluetooth
+  bluetooth.bsim.app_split:
     extra_args:
-      - "-DCONF_FILE=prj_split_privacy.conf"
-      - '-DCMAKE_C_FLAGS="-Werror"'
-      - "-DCONFIG_COVERAGE=y"
-      - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      - "-DCONF_FILE=prj_split.conf"
     bsim_config:
+      built_exe_name: "bs_nrf52_bsim_bluetooth_bsim_app_split"
       devices:
         -
           id: peripheral
           extra_run_args:
-            - "-RealEncryption=1"
+            - "-RealEncryption=0"
             - "-rs=23"
         -
-          id: central_encrypted
+          id: central
           extra_run_args:
-            - "-RealEncryption=1"
+            - "-RealEncryption=0"
             - "-rs=6"
       medium:
         name: bs_2G4_phy_v1
         sim_length: 20e6
 
-  bluetooth.bsim.app_encrypted_split:
-    platform_allow: nrf52_bsim
-    tags: bluetooth
+  bluetooth.bsim.app_split_encrypted:
     extra_args:
       - "-DCONF_FILE=prj_split.conf"
-      - '-DCMAKE_C_FLAGS="-Werror"'
-      - "-DCONFIG_COVERAGE=y"
-      - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
     bsim_config:
       built_exe_name: "bs_nrf52_bsim_bluetooth_bsim_app_split"
       devices:
@@ -51,13 +50,8 @@ tests:
         sim_length: 20e6
 
   bluetooth.bsim.app_split_low_lat:
-    platform_allow: nrf52_bsim
-    tags: bluetooth
     extra_args:
       - "-DCONF_FILE=prj_split_low_lat.conf"
-      - '-DCMAKE_C_FLAGS="-Werror"'
-      - "-DCONFIG_COVERAGE=y"
-      - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
     bsim_config:
       devices:
         -
@@ -74,26 +68,20 @@ tests:
         name: bs_2G4_phy_v1
         sim_length: 20e6
 
-  bluetooth.bsim.app_split:
-    platform_allow: nrf52_bsim
-    tags: bluetooth
+  bluetooth.bsim.app_split_privacy_encrypted:
     extra_args:
-      - "-DCONF_FILE=prj_split.conf"
-      - '-DCMAKE_C_FLAGS="-Werror"'
-      - "-DCONFIG_COVERAGE=y"
-      - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+      - "-DCONF_FILE=prj_split_privacy.conf"
     bsim_config:
-      built_exe_name: "bs_nrf52_bsim_bluetooth_bsim_app_split"
       devices:
         -
           id: peripheral
           extra_run_args:
-            - "-RealEncryption=0"
+            - "-RealEncryption=1"
             - "-rs=23"
         -
-          id: central
+          id: central_encrypted
           extra_run_args:
-            - "-RealEncryption=0"
+            - "-RealEncryption=1"
             - "-rs=6"
       medium:
         name: bs_2G4_phy_v1

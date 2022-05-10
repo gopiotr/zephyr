@@ -1,10 +1,9 @@
 tests:
   bluetooth.bsim.gatt:
-    platform_allow: nrf52_bsim
-    tags: bluetooth
-    # TODO: currently Twister accepts only args in one string (without -D),
-    #  so it should be discussed if this list of extra args started with "-D"
-    #  are acceptable
+    platform_allow:
+      - nrf52_bsim
+    tags:
+      - bluetooth
     extra_args:
       - '-DCMAKE_C_FLAGS="-Werror"'
       - "-DCONFIG_COVERAGE=y"

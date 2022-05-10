@@ -30,8 +30,8 @@ class TestcaseYamlParser:
         {
             Optional("bsim_config"): bsim_config_schema,
             Optional("extra_args"): Seq(Str()),
-            Optional("platform_allow"): Str(),
-            Optional("tags"): Str(),
+            Optional("platform_allow"): Seq(Str()),
+            Optional("tags"): Seq(Str()),
         }
     )
 
@@ -43,7 +43,7 @@ class TestcaseYamlParser:
 
     testcase_yaml_schema = Map(
         {
-            # TODO: add common_schema
+            Optional("common"): testscenario_schema,
             "tests": tests_schema,
         }
     )

@@ -1,44 +1,27 @@
+common:
+  extra_args:
+    - '-DCMAKE_C_FLAGS="-Werror"'
+    - "-DCONFIG_COVERAGE=y"
+    - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+  platform_allow:
+    - nrf52_bsim
+  tags: 
+    - bluetooth
+  bsim_config:
+    devices:
+      -
+        id: central
+      -
+        id: peripheral
+    medium:
+      name: bs_2G4_phy_v1
+      sim_length: 200e6
+
 tests:
   bluetooth.bsim.eatt_encryption:
-    platform_allow: nrf52_bsim
-    tags: bluetooth
-    # TODO: currently Twister accepts only args in one string (without -D),
-    #  so it should be discussed if this list of extra args started with "-D"
-    #  are acceptable
     extra_args:
       - "-DCONF_FILE=prj_encryption.conf"
-      - '-DCMAKE_C_FLAGS="-Werror"'
-      - "-DCONFIG_COVERAGE=y"
-      - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-
-    bsim_config:
-      devices:
-        -
-          id: central
-        -
-          id: peripheral
-      medium:
-        name: bs_2G4_phy_v1
-        sim_length: 200e6
 
   bluetooth.bsim.eatt_collision:
-    platform_allow: nrf52_bsim
-    tags: bluetooth
-    # TODO: currently Twister accepts only args in one string (without -D),
-    #  so it should be discussed if this list of extra args started with "-D"
-    #  are acceptable
     extra_args:
       - "-DCONF_FILE=prj_collision.conf"
-      - '-DCMAKE_C_FLAGS="-Werror"'
-      - "-DCONFIG_COVERAGE=y"
-      - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-
-    bsim_config:
-      devices:
-        -
-          id: central
-        -
-          id: peripheral
-      medium:
-        name: bs_2G4_phy_v1
-        sim_length: 200e6

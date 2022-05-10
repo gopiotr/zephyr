@@ -94,24 +94,26 @@ class YamlFile(pytest.File):
 
         parser = TestcaseYamlParser()
         yaml_data = parser.load(self.fspath)
+        common = yaml_data.get("common", {})
         testscenarios = yaml_data.get("tests", {})
         for testscenario_name, testscenario_config in testscenarios.items():
-            if "bsim_config" not in testscenario_config:
-                continue
             yield YamlItem.from_parent(
                 self,
                 test_src_path=test_src_path,
+                common=common,
                 testscenario_name=testscenario_name,
                 testscenario_config=testscenario_config
             )
 
 
 class YamlItem(pytest.Item):
-    def __init__(self, parent, test_src_path, testscenario_name,
+    def __init__(self, parent, common, test_src_path, testscenario_name,
                  testscenario_config):
         super().__init__(testscenario_name, parent)
 
-        logger.info("Found test scenario: %s", testscenario_name)
+        logger.debug("Found test scenario: %s", testscenario_name)
+
+        self._update_testscenario_config(common, testscenario_config)
 
         self.test_src_path = test_src_path
         self.extra_build_args = testscenario_config.get("extra_args", [])
@@ -124,6 +126,23 @@ class YamlItem(pytest.Item):
         self.medium = bsim_config.get("medium", {})
         self.built_exe_name = bsim_config.get("built_exe_name")
         self.build_info_file_path = BUILD_INFO_FILE_PATH
+
+    @staticmethod
+    def _update_testscenario_config(common, testscenario_config):
+        if not common:
+            return
+
+        for config_name, config_value in common.items():
+            if config_name in testscenario_config:
+                if isinstance(testscenario_config[config_name], list) and \
+                        isinstance(config_value, list):
+                    # join testscenario and common configs if they are lists
+                    testscenario_config[config_name] += config_value
+                else:
+                    # do not overwrite testscenario_config
+                    pass
+            else:
+                testscenario_config[config_name] = config_value
 
     def runtest(self):
         logger.info("Start test: %s", self.name)

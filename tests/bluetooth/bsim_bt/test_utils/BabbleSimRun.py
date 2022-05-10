@@ -85,9 +85,15 @@ class BabbleSimRun:
         general_log_msg = f"Logs saved at:"
 
         for device in self.devices:
-            general_log_msg += f"\n{device.log_file_base_path}_*.log"
+            general_log_msg += f"\n{device.log_file_base_path}_out.log"
+            err_file_path = f"{device.log_file_base_path}_err.log"
+            if os.path.exists(err_file_path):
+                general_log_msg += f"\n{err_file_path}"
 
-        general_log_msg += f"\n{self.medium.log_file_base_path}_*.log"
+        general_log_msg += f"\n{self.medium.log_file_base_path}_out.log"
+        err_file_path = f"{self.medium.log_file_base_path}_err.log"
+        if os.path.exists(err_file_path):
+            general_log_msg += f"\n{err_file_path}"
 
         logger.info(general_log_msg)
 
