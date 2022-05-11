@@ -18,10 +18,16 @@ if not ZEPHYR_BASE:
 BSIM_TESTS_OUT_DIR_NAME = "bsim_tests_out"
 BSIM_TESTS_OUT_DIR_PATH = os.path.join(ZEPHYR_BASE, BSIM_TESTS_OUT_DIR_NAME)
 BUILD_INFO_FILE_NAME = "build_info.json"
-BUILD_INFO_FILE_PATH = os.path.join(BSIM_TESTS_OUT_DIR_PATH, BUILD_INFO_FILE_NAME)
+BUILD_INFO_FILE_PATH = \
+    os.path.join(BSIM_TESTS_OUT_DIR_PATH, BUILD_INFO_FILE_NAME)
 
 
 def prepare_bsim_test_out_dir():
+    """
+    Move previous (if exists) bsim_tests_out dir into historical one (like for
+    example bsim_tests_out_2). Create new clean output dir, where all tests
+    output will be stored (logs, build output, reports).
+    """
     # TODO: refactor this to simplify out dir preparation and write "smarter"
     #  detection of historical directories
     if os.path.exists(BSIM_TESTS_OUT_DIR_PATH):
@@ -44,19 +50,17 @@ def prepare_bsim_test_out_dir():
 
 
 def setup_logger(config):
-    is_worker_input = hasattr(config, 'workerinput')  # xdist worker
-    if is_worker_input:
+    """
+    If tests are run in parallel (with pytest's xdist plugin), then create
+    several output log file (for each run worker/process).
+    """
+    if is_main_worker(config):
+        log_file_name = "bsim_test_plugin.log"
+    else:
         worker_id = config.workerinput['workerid']
         log_file_name = f'bsim_test_plugin_{worker_id}.log'
-    else:
-        log_file_name = "bsim_test_plugin.log"
     log_file_path = os.path.join(BSIM_TESTS_OUT_DIR_PATH, log_file_name)
     file_handler = logging.FileHandler(log_file_path, mode="w")
-    # TODO: remove extended log format
-    # formatter_file = logging.Formatter(
-    #     '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    #     datefmt="%H:%M:%S"
-    # )
     formatter_file = logging.Formatter(
         '%(asctime)s - %(levelname)s - %(message)s',
         datefmt="%H:%M:%S"
@@ -67,25 +71,41 @@ def setup_logger(config):
 
 
 def pytest_configure(config):
-    is_worker_input = hasattr(config, 'workerinput')  # xdist worker
-    if not is_worker_input:
+    if is_main_worker(config):
         prepare_bsim_test_out_dir()
+        with open(BUILD_INFO_FILE_PATH, 'w', encoding='utf-8') as file:
+            json.dump({}, file, indent=4)
     setup_logger(config)
-    with open(BUILD_INFO_FILE_PATH, 'w', encoding='utf-8') as file:
-        json.dump({}, file, indent=4)
-
-
-def pytest_collect_file(parent, path):
-    if path.basename.startswith("bs_testcase") and (path.ext == ".yaml" or path.ext == ".yml"):
-        return YamlFile.from_parent(parent, fspath=path)
 
 
 def pytest_unconfigure(config):
-    is_worker_input = hasattr(config, 'workerinput')  # xdist worker
-    if not is_worker_input:
+    if is_main_worker(config):
         build_info_lock_path = f"{BUILD_INFO_FILE_PATH}.lock"
-        if os.path.exists(build_info_lock_path) and os.path.isfile(build_info_lock_path):
+        if os.path.exists(build_info_lock_path) and \
+                os.path.isfile(build_info_lock_path):
             os.remove(build_info_lock_path)
+
+
+def is_main_worker(config):
+    """
+    When tests are run in parallel (by xdist plugin), then several workers/
+    processes are created. This function help to verify if current process is
+    main worker/process, which is run at the very beginning of tests (before
+    "children" workers start) and is finished when all tests are performed
+    (after "children" workers will end). When tests are run sequentially (not by
+    xdist plugin), then only one process are run, which is "main worker".
+    """
+    is_worker_input = hasattr(config, 'workerinput')
+    return not is_worker_input
+
+
+def pytest_collect_file(parent, path):
+    """
+    Analyse only bs_testcase.yaml or bs_testcase.yml files.
+    """
+    if path.basename.startswith("bs_testcase") and \
+            (path.ext == ".yaml" or path.ext == ".yml"):
+        return YamlFile.from_parent(parent, fspath=path)
 
 
 class YamlFile(pytest.File):
@@ -94,45 +114,59 @@ class YamlFile(pytest.File):
 
         parser = TestcaseYamlParser()
         yaml_data = parser.load(self.fspath)
-        common = yaml_data.get("common", {})
+        common_config = yaml_data.get("common", {})
         testscenarios = yaml_data.get("tests", {})
         for testscenario_name, testscenario_config in testscenarios.items():
             yield YamlItem.from_parent(
                 self,
                 test_src_path=test_src_path,
-                common=common,
+                common_config=common_config,
                 testscenario_name=testscenario_name,
                 testscenario_config=testscenario_config
             )
 
 
 class YamlItem(pytest.Item):
-    def __init__(self, parent, common, test_src_path, testscenario_name,
+    def __init__(self, parent, test_src_path, testscenario_name, common_config,
                  testscenario_config):
         super().__init__(testscenario_name, parent)
 
         logger.debug("Found test scenario: %s", testscenario_name)
 
-        self._update_testscenario_config(common, testscenario_config)
-
         self.test_src_path = test_src_path
-        self.extra_build_args = testscenario_config.get("extra_args", [])
 
         self.sim_id = testscenario_name.replace(".", "_")
         self.test_out_path = os.path.join(BSIM_TESTS_OUT_DIR_PATH, self.sim_id)
 
+        self._update_testscenario_config(common_config, testscenario_config)
+
+        self.extra_build_args = testscenario_config.get("extra_args", [])
         bsim_config = testscenario_config["bsim_config"]
         self.devices = bsim_config.get("devices", [])
         self.medium = bsim_config.get("medium", {})
-        self.built_exe_name = bsim_config.get("built_exe_name")
+        default_general_exe_name = f"bs_nrf52_bsim_{self.sim_id}"
+        self.general_exe_name = \
+            bsim_config.get("built_exe_name", default_general_exe_name)
+
         self.build_info_file_path = BUILD_INFO_FILE_PATH
 
     @staticmethod
-    def _update_testscenario_config(common, testscenario_config):
-        if not common:
+    def _update_testscenario_config(common_config, testscenario_config):
+        """
+        When "common" entry is used in bs_testcase.yaml file, then update
+        testscenario configs with following rules:
+        1. If the same config occurs in "common" and testscenario entries and
+        they are a list (like for example "extra_args") then join them together.
+        2. If the same config occurs in "common" and testscenario entries and
+        they are NOT a list (like for example "bsim_config"), then do NOT
+        overwrite testscenario config by common config.
+        3. If some config occurs in "common" and not occur testscenario entry,
+        then add this config to testscenario configs.
+        """
+        if not common_config:
             return
 
-        for config_name, config_value in common.items():
+        for config_name, config_value in common_config.items():
             if config_name in testscenario_config:
                 if isinstance(testscenario_config[config_name], list) and \
                         isinstance(config_value, list):
@@ -153,31 +187,21 @@ class YamlItem(pytest.Item):
             self.test_src_path,
             self.test_out_path,
             self.build_info_file_path,
-            self.sim_id,
-            self.extra_build_args,
-            self.built_exe_name
+            self.general_exe_name,
+            self.extra_build_args
         )
         bs_builder.build()
-        exe_path = bs_builder.get_built_exe_path()
-
-        # # TODO: remove below mock (for test only)
-        # BSIM_OUT_PATH = os.getenv("BSIM_OUT_PATH")
-        # bsim_bin_path = os.path.join(BSIM_OUT_PATH, "bin")
-        # exe_name = f"bs_nrf52_bsim_{self.sim_id}"
-        # exe_path = os.path.join(bsim_bin_path, exe_name)
 
         bs_runner = BabbleSimRun(
             self.test_out_path,
             self.sim_id,
-            exe_path,
+            self.general_exe_name,
             self.devices,
             self.medium
         )
         bs_runner.run()
-        if False:
-            raise YamlException(self)
 
-    def repr_failure(self, excinfo):
+    def repr_failure(self, excinfo, style=None):
         """Called when self.runtest() raises an exception."""
         if isinstance(excinfo.value, YamlException):
             return "Test fails"

@@ -4,7 +4,6 @@ import sys
 import subprocess
 import multiprocessing as mp
 import abc
-import pytest
 
 LOGGER_NAME = f"bsim_plugin.{__name__.split('.')[-1]}"
 logger = logging.getLogger(LOGGER_NAME)
@@ -20,30 +19,15 @@ if not BSIM_OUT_PATH:
 BSIM_BIN_DIR_NAME = "bin"
 BSIM_BIN_DIR_PATH = os.path.join(BSIM_OUT_PATH, BSIM_BIN_DIR_NAME)
 
-
-def run_process(process_cmd, log_file_base_path):
-    ps_logger = ProcessLogger(log_file_base_path, debug_enable=False)
-
-    p = subprocess.Popen(
-        process_cmd,
-        cwd=BSIM_BIN_DIR_PATH,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-    stdout_data, stderr_data = p.communicate()
-
-    ps_logger.save_out_log(stdout_data)
-    if stderr_data:
-        ps_logger.save_err_log(stderr_data)
-
-    return p.returncode
+RUN_SIM_TIMEOUT_DURATION = 300.0  # [s]
 
 
 class BabbleSimRun:
-    def __init__(self, test_out_path, sim_id, app_exe_path, devices_config, medium_config):
+    def __init__(self, test_out_path, sim_id, general_exe_name, devices_config, medium_config):
+        general_exe_path = os.path.join(BSIM_BIN_DIR_PATH, general_exe_name)
         self.devices = []
         for device_no, device_config in enumerate(devices_config):
-            device = Device(sim_id, app_exe_path, device_no, device_config, test_out_path)
+            device = Device(sim_id, general_exe_path, device_no, device_config, test_out_path)
             self.devices.append(device)
         self.medium = Medium(sim_id, len(self.devices), medium_config, test_out_path)
 
@@ -173,6 +157,24 @@ class Medium(BabbleSimObject):
         run_medium_args += self.extra_run_args
         run_medium_cmd = [self.exe_path] + run_medium_args
         return run_medium_cmd
+
+
+def run_process(process_cmd, log_file_base_path):
+    ps_logger = ProcessLogger(log_file_base_path, debug_enable=False)
+
+    result = subprocess.run(
+        process_cmd,
+        cwd=BSIM_BIN_DIR_PATH,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=RUN_SIM_TIMEOUT_DURATION
+    )
+
+    ps_logger.save_out_log(result.stdout)
+    if result.stderr:
+        ps_logger.save_err_log(result.stderr)
+
+    return result.returncode
 
 
 class ProcessLogger:

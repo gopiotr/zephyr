@@ -1,10 +1,10 @@
 import logging
 from strictyaml import load as strictyaml_load
 from strictyaml import Map, MapPattern, Optional, Seq, Str, YAMLError
-import pytest
 
 LOGGER_NAME = f"bsim_plugin.{__name__.split('.')[-1]}"
 logger = logging.getLogger(LOGGER_NAME)
+
 
 class TestcaseYamlParser:
     bsim_config_schema = Map(
