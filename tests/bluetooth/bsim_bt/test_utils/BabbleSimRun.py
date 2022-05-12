@@ -23,13 +23,16 @@ RUN_SIM_TIMEOUT_DURATION = 300.0  # [s]
 
 
 class BabbleSimRun:
-    def __init__(self, test_out_path, sim_id, general_exe_name, devices_config, medium_config):
+    def __init__(self, test_out_path, sim_id, general_exe_name, devices_config,
+                 medium_config):
         general_exe_path = os.path.join(BSIM_BIN_DIR_PATH, general_exe_name)
         self.devices = []
         for device_no, device_config in enumerate(devices_config):
-            device = Device(sim_id, general_exe_path, device_no, device_config, test_out_path)
+            device = Device(sim_id, general_exe_path, device_no, device_config,
+                            test_out_path)
             self.devices.append(device)
-        self.medium = Medium(sim_id, len(self.devices), medium_config, test_out_path)
+        self.medium = Medium(sim_id, len(self.devices), medium_config,
+                             test_out_path)
 
     def run(self):
         self._log_run_bsim_cmd()
@@ -47,6 +50,7 @@ class BabbleSimRun:
         self.medium.run_process_result = \
             pool.apply_async(run_process, self.medium.run_process_args)
 
+        # TODO: add timeout here
         pool.close()
         pool.join()
 
@@ -97,6 +101,10 @@ class BabbleSimRun:
 
 
 class BabbleSimObject(abc.ABC):
+    """
+    Abstract class to store information about BabbleSim "objects" like devices
+    (nodes/applications) or wireless medium.
+    """
     def __init__(self, sim_id, name, exe_path, extra_run_args, test_out_path):
         self.sim_id = sim_id
         self.name = name
@@ -120,6 +128,10 @@ class BabbleSimObject(abc.ABC):
 
 
 class Device(BabbleSimObject):
+    """
+    Device represents single node/application in whole simulation like "central"
+    or "peripheral" device.
+    """
     def __init__(self, sim_id, exe_path, device_no, device_config, test_out_path):
         name = device_config["id"]
         extra_run_args = device_config.get("extra_run_args", [])
@@ -139,6 +151,10 @@ class Device(BabbleSimObject):
 
 
 class Medium(BabbleSimObject):
+    """
+    Medium represents BabbleSim's wireless transport medium like
+    "bs_2G4_phy_v1".
+    """
     def __init__(self, sim_id, number_devices, medium_config, test_out_path):
         name = medium_config["name"]
         exe_medium_path = os.path.join(BSIM_BIN_DIR_PATH, name)
@@ -160,6 +176,10 @@ class Medium(BabbleSimObject):
 
 
 def run_process(process_cmd, log_file_base_path):
+    """
+    Functions used during spawn several processes necessary when BabbleSim
+    simulation is launched.
+    """
     ps_logger = ProcessLogger(log_file_base_path, debug_enable=False)
 
     result = subprocess.run(
@@ -178,7 +198,15 @@ def run_process(process_cmd, log_file_base_path):
 
 
 class ProcessLogger:
+    """
+    Logger class designed to use particularly in run_process function, due to
+    the problem with use "classic" logger instance when this function is run
+    in separate process.
+    """
     def __init__(self, log_file_base_path, debug_enable=False):
+        """
+        :param debug_enable: used only during plugin debugging
+        """
         self.out_file_path = f"{log_file_base_path}_out.log"
 
         self.err_file_path = f"{log_file_base_path}_err.log"
@@ -201,6 +229,9 @@ class ProcessLogger:
             file.write(data)
 
     def save_debug_log(self, log):
+        """
+        Used only during plugin debugging.
+        """
         if self.debug_enable:
             with open(self.debug_file_path, "a") as file:
                 file.write(log)

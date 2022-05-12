@@ -24,6 +24,7 @@ BSIM_BIN_DIR_PATH = os.path.join(BSIM_OUT_PATH, BSIM_BIN_DIR_NAME)
 
 
 class BabbleSimBuild:
+    lock_timeout_duration = 120.0  # [s]
     build_timeout_duration = 300.0  # [s]
     board_root = ZEPHYR_BASE
     cmake_generator = "Ninja"
@@ -71,57 +72,70 @@ class BabbleSimBuild:
 
     def _check_build_status(self):
         """
-        TODO: write doc string
+        Check if desired exe file was already built in previous tests based on
+        build_info.json file. When tests are run in parallel (by xdist plugin),
+        then check if desired building is already in progress by other test - if
+        so, then just wait for finish those building.
+        Return information about whether the exe is already built.
         """
-        # TODO: refactor this method to simplify it
-        lock = FileLock(f"{self.build_info_file_path}.lock")
-        already_built_flag = False
-        build_status = BuildStatus.in_progress
-        timeout_lock = 120.0  # [s]
+        build_status = BuildStatus.unknown
         wait_for_build_duration = 1.0  # [s]
         build_timeout = time.time() + self.build_timeout_duration
 
-        while build_status == BuildStatus.in_progress:
-            # TODO: add timeout
-            with lock.acquire(timeout=timeout_lock):
-                with open(self.build_info_file_path, "r") as file:
-                    builds_info = json.load(file)
-                build_info = builds_info.get(self.general_exe_name, {})
-                build_status = build_info.get("status", BuildStatus.unknown)
-                if build_status == BuildStatus.unknown:
-                    builds_info[self.general_exe_name] = {
-                        "status": BuildStatus.in_progress,
-                        "build_path": self.build_dir
-                    }
-                    with open(self.build_info_file_path, "w") as file:
-                        json.dump(builds_info, file, indent=4)
-                    already_built_flag = False
-                    break
-                elif build_status == BuildStatus.finished:
-                    build_path = build_info["build_path"]
-                    log_msg = f"Used already existed build from: \n{build_path}"
-                    logger.info(log_msg)
-                    build_log_file_name = "build.log"
-                    build_log_file_path = os.path.join(self.build_dir, build_log_file_name)
-                    with open(build_log_file_path, "w") as file:
-                        file.write(log_msg)
-                    already_built_flag = True
-                    break
+        while build_status == BuildStatus.unknown or \
+                build_status == BuildStatus.in_progress:
+            build_status = self._get_status_from_build_info_file()
             time.sleep(wait_for_build_duration)
             if time.time() > build_timeout:
                 logger.error("Wait for build timeout.")
                 raise TimeoutError
 
+        if build_status == BuildStatus.finished:
+            already_built_flag = True
+        else:
+            already_built_flag = False
         return already_built_flag
 
-    def _update_build_status(self):
+    def _get_status_from_build_info_file(self):
+        """
+        If there are no information about build status, then add new entry to
+        build_info.json file with "in_progress" build status and return
+        "to_be_done" status.
+        """
         lock = FileLock(f"{self.build_info_file_path}.lock")
-        with lock:
+        with lock.acquire(timeout=self.lock_timeout_duration):
             with open(self.build_info_file_path, "r") as file:
-                build_info = json.load(file)
-            build_info[self.general_exe_name]["status"] = BuildStatus.finished
-            with open(self.build_info_file_path, "w") as file:
-                json.dump(build_info, file, indent=4)
+                builds_info = json.load(file)
+            build_info = builds_info.get(self.general_exe_name, {})
+            build_status = build_info.get("status", BuildStatus.unknown)
+            if build_status == BuildStatus.unknown:
+                self._update_build_status(BuildStatus.in_progress)
+                build_status = BuildStatus.to_be_done
+            elif build_status == BuildStatus.finished:
+                build_path = build_info["build_path"]
+                log_msg = f"Used already existed build from: \n{build_path}"
+                self._save_short_logs(log_msg)
+            return build_status
+
+    def _update_build_status_lock(self, build_status):
+        lock = FileLock(f"{self.build_info_file_path}.lock")
+        with lock.acquire(timeout=self.lock_timeout_duration):
+            self._update_build_status(build_status)
+
+    def _update_build_status(self, build_status):
+        with open(self.build_info_file_path, "r") as file:
+            builds_info = json.load(file)
+
+        if builds_info.get(self.general_exe_name):
+            builds_info[self.general_exe_name]["status"] = build_status
+        else:
+            builds_info[self.general_exe_name] = {
+                "status": build_status,
+                "build_path": self.build_dir
+            }
+
+        with open(self.build_info_file_path, "w") as file:
+            json.dump(builds_info, file, indent=4)
 
     def _run_cmake(self):
         cmake_args = [
@@ -182,6 +196,10 @@ class BabbleSimBuild:
             raise subprocess.CalledProcessError
 
     def _copy_exe(self):
+        """
+        Copy built exe file to f"{BSIM_OUT_PATH}/bin" directory and set this
+        file executable mode.
+        """
         current_exe_path = os.path.join(self.build_dir, "zephyr", "zephyr.exe")
 
         dst_exe_path = self.general_exe_path
@@ -214,7 +232,18 @@ class BabbleSimBuild:
 
         logger.info("Logs saved at: %s", all_log_file_paths)
 
+    def _save_short_logs(self, log_msg):
+        logger.info(log_msg)
+        build_log_file_name = "build.log"
+        build_log_file_path = os.path.join(self.build_dir, build_log_file_name)
+        with open(build_log_file_path, "a") as file:
+            file.write(log_msg)
+
     def build(self):
+        """
+        Before start building process check if desired exe is already built. If
+        so, then skip building process.
+        """
         self._clean_build_folder()
         already_built_flag = self._check_build_status()
         if already_built_flag:
@@ -222,10 +251,11 @@ class BabbleSimBuild:
         self._run_cmake()
         self._run_ninja()
         self._copy_exe()
-        self._update_build_status()
+        self._update_build_status_lock(BuildStatus.finished)
 
 
 class BuildStatus:
     unknown = "unknown"
+    to_be_done = "to_be_done"
     in_progress = "in_progress"
     finished = "finished"
