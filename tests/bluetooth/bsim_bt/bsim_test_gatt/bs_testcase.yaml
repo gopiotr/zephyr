@@ -13,14 +13,8 @@ tests:
       devices:
         -
           id: gatt_client
-          extra_run_args:
-            - "-v=3"
         -
           id: gatt_server
-          extra_run_args:
-            - "-v=4"
       medium:
         name: bs_2G4_phy_v1
         sim_length: 60e6
-        extra_run_args:
-          - "-v=0"
