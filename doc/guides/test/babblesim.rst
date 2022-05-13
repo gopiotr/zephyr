@@ -77,7 +77,7 @@ beginning Pytest scan directories and try to find ``bs_testcase.yaml`` and
 tests defined inside it. Exemplary ``bs_testcase.yaml`` for
 ``tests/bluetooth/bsim_bt/bsim_test_gatt`` test may look like below:
 
-::
+.. code-block:: yaml
 
     tests:
       bluetooth.bsim.gatt:
