@@ -62,7 +62,7 @@ Exemplary output could looks like:
 
     ===================== 8 passed in 67.68s (0:01:07) =====================
 
-For more verbose output special options could be added to basic command:
+For more verbose output special arguments could be added to basic command:
 
 ::
 
@@ -75,7 +75,7 @@ BabbleSim tests are defined in ``bs_testcase.yaml`` files (similar to "classic"
 Twister approach with defining tests in ``testcase.yaml`` files). At the
 beginning Pytest scan directories and try to find ``bs_testcase.yaml`` and
 tests defined inside it. Exemplary ``bs_testcase.yaml`` for
-``tests/bluetooth/bsim_bt/bsim_test_gatt`` test is presented below:
+``tests/bluetooth/bsim_bt/bsim_test_gatt`` test may look like below:
 
 ::
 
@@ -100,8 +100,27 @@ tests defined inside it. Exemplary ``bs_testcase.yaml`` for
             sim_length: 60e6
 
 This YAML file define necessary information to build and run BabbleSim's tests.
-Next after collecting all tests, Pytest filter tests if some filter rules was
+Next after collecting all tests, Pytest filter tests if some filter rules were
 passed in CLI.
+
+Each test consists of two phase:
+
+1. Building process
+    - get CMake extra arguments from ``bs_testcase.yaml`` file and prepare CMake
+      command (add source code directory, output build directory, target
+      platform (``nrf52_bsim``), conf file (if was not passed explicitly in
+      ``extra_args`` option))
+    - run CMake
+    - run Ninja generator
+2. Run simulation
+    - parse ``bsim_config`` from ``bs_testcase.yaml`` file and prepare suitable
+      commands to run each simulated devices and wireless medium
+    - run simulation
+    - if some error/failure occurs during run simulation then mark test as
+      ``FAILED`` - otherwise as ``PASSED``
+
+Final report is generated at the end if adequate argument was passed through CLI
+(for example ``--junitxml=./bs_report.xml``).
 
 Minimal test configuration
 **************************
@@ -111,3 +130,6 @@ Additional features
 
 Parallelization
 ***************
+
+Plugin debugging
+****************
