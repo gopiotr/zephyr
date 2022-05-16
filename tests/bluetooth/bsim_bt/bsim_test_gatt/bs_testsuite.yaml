@@ -8,7 +8,6 @@ tests:
       - '-DCMAKE_C_FLAGS="-Werror"'
       - "-DCONFIG_COVERAGE=y"
       - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-
     bsim_config:
       devices:
         -

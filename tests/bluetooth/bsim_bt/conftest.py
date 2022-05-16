@@ -108,6 +108,22 @@ def pytest_collect_file(parent, path):
         return YamlFile.from_parent(parent, fspath=path)
 
 
+def pytest_collection_finish(session):
+    """
+    Verify uniqueness of collected test scenario names.
+    """
+    duplication_flag = False
+    test_scenario_names = [item.name for item in session.items]
+    for test_scenario in session.items:
+        if test_scenario_names.count(test_scenario.name) > 1:
+            duplication_flag = True
+            logger.error("Test scenario name is not unique: %s from:\n%s",
+                         test_scenario.name, test_scenario.test_src_path)
+    if duplication_flag:
+        exception_msg = "Test scenario names duplication found."
+        raise YamlException(exception_msg)
+
+
 class YamlFile(pytest.File):
     def collect(self):
         test_src_path = self.fspath.dirpath()

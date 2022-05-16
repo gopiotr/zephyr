@@ -55,10 +55,10 @@ Exemplary output could looks like:
     plugins: typeguard-2.13.3, forked-1.4.0, xdist-2.5.0
     collected 8 items
 
-    tests/bluetooth/bsim_bt/bsim_test_advx/bs_testcase.yaml .        [ 12%]
-    tests/bluetooth/bsim_bt/bsim_test_app/bs_testcase.yaml ....      [ 62%]
-    tests/bluetooth/bsim_bt/bsim_test_eatt/bs_testcase.yaml ..       [ 87%]
-    tests/bluetooth/bsim_bt/bsim_test_gatt/bs_testcase.yaml .        [100%]
+    tests/bluetooth/bsim_bt/bsim_test_advx/bs_testsuite.yaml .        [ 12%]
+    tests/bluetooth/bsim_bt/bsim_test_app/bs_testsuite.yaml ....      [ 62%]
+    tests/bluetooth/bsim_bt/bsim_test_eatt/bs_testsuite.yaml ..       [ 87%]
+    tests/bluetooth/bsim_bt/bsim_test_gatt/bs_testsuite.yaml .        [100%]
 
     ===================== 8 passed in 67.68s (0:01:07) =====================
 
@@ -66,15 +66,15 @@ For more verbose output special arguments could be added to basic command:
 
 ::
 
-    pytest tests/bluetooth/bsim_bt -vv log_cli=true
+    pytest tests/bluetooth/bsim_bt -vv -o log_cli=true
 
 How it works?
 *************
 
-BabbleSim tests are defined in ``bs_testcase.yaml`` files (similar to "classic"
+BabbleSim tests are defined in ``bs_testsuite.yaml`` files (similar to "classic"
 Twister approach with defining tests in ``testcase.yaml`` files). At the
-beginning Pytest scan directories and try to find ``bs_testcase.yaml`` and
-tests defined inside it. Exemplary ``bs_testcase.yaml`` for
+beginning Pytest scan directories and try to find ``bs_testsuite.yaml`` and
+tests defined inside it. Exemplary ``bs_testsuite.yaml`` for
 ``tests/bluetooth/bsim_bt/bsim_test_gatt`` test may look like below:
 
 .. code-block:: yaml
@@ -106,14 +106,14 @@ passed in CLI.
 Each test consists of two phase:
 
 1. Building process
-    - get CMake extra arguments from ``bs_testcase.yaml`` file and prepare CMake
+    - get CMake extra arguments from ``bs_testsuite.yaml`` file and prepare CMake
       command (add source code directory, output build directory, target
       platform (``nrf52_bsim``), conf file (if was not passed explicitly in
       ``extra_args`` option))
     - run CMake
     - run Ninja generator
 2. Run simulation
-    - parse ``bsim_config`` from ``bs_testcase.yaml`` file and prepare suitable
+    - parse ``bsim_config`` from ``bs_testsuite.yaml`` file and prepare suitable
       commands to run each simulated devices and wireless medium
     - run simulation
     - if some error/failure occurs during run simulation then mark test as
@@ -124,6 +124,15 @@ Final report is generated at the end if adequate argument was passed through CLI
 
 Minimal test configuration
 **************************
+
+When test's source code is already prepared, then to make it possible to build
+and run them by Pytest, the ``bs_testsuite.yaml`` file have to be defined.
+
+Minimal ``bs_testsuite.yaml`` file consists list of testscenarios with
+BabbleSim's configs. Each testscenario must have unique name among all
+testscenarios (otherwise Pytest will rise an error). This is very significant,
+because this name will be used to mark BabbleSim's simulation ID and to
+create test output directory.
 
 Additional features
 *******************
