@@ -4,7 +4,7 @@ import logging
 import shutil
 import pytest
 import json
-from test_utils.TestcaseYamlParser import TestcaseYamlParser
+from test_utils.TestsuiteYamlParser import TestsuiteYamlParser
 from test_utils.BabbleSimBuild import BabbleSimBuild
 from test_utils.BabbleSimRun import BabbleSimRun
 
@@ -101,9 +101,9 @@ def is_main_worker(config):
 
 def pytest_collect_file(parent, path):
     """
-    Analyse only bs_testcase.yaml or bs_testcase.yml files.
+    Analyse only bs_testsuite.yaml or bs_testsuite.yml files.
     """
-    if path.basename.startswith("bs_testcase") and \
+    if path.basename.startswith("bs_testsuite") and \
             (path.ext == ".yaml" or path.ext == ".yml"):
         return YamlFile.from_parent(parent, fspath=path)
 
@@ -112,7 +112,7 @@ class YamlFile(pytest.File):
     def collect(self):
         test_src_path = self.fspath.dirpath()
 
-        parser = TestcaseYamlParser()
+        parser = TestsuiteYamlParser()
         yaml_data = parser.load(self.fspath)
         common_config = yaml_data.get("common", {})
         testscenarios = yaml_data.get("tests", {})
@@ -153,7 +153,7 @@ class YamlItem(pytest.Item):
     @staticmethod
     def _update_testscenario_config(common_config, testscenario_config):
         """
-        When "common" entry is used in bs_testcase.yaml file, then update
+        When "common" entry is used in bs_testsuite.yaml file, then update
         testscenario configs with following rules:
         1. If the same config occurs in "common" and testscenario entries and
         they are a list (like for example "extra_args") then join them together.

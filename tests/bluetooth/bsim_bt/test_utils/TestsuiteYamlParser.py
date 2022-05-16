@@ -6,7 +6,7 @@ LOGGER_NAME = f"bsim_plugin.{__name__.split('.')[-1]}"
 logger = logging.getLogger(LOGGER_NAME)
 
 
-class TestcaseYamlParser:
+class TestsuiteYamlParser:
     bsim_config_schema = Map(
         {
             "devices": Seq(Map(
@@ -41,7 +41,7 @@ class TestcaseYamlParser:
         minimum_keys=1,  # tests require minimum one testscenario
     )
 
-    testcase_yaml_schema = Map(
+    testsuite_yaml_schema = Map(
         {
             Optional("common"): testscenario_schema,
             "tests": tests_schema,
@@ -51,17 +51,17 @@ class TestcaseYamlParser:
     def __init__(self):
         pass
 
-    def load(self, testcase_yaml_fspath):
-        with open(testcase_yaml_fspath, "r") as file_handler:
+    def load(self, testsuite_yaml_fspath):
+        with open(testsuite_yaml_fspath, "r") as file_handler:
             try:
                 yaml_data = strictyaml_load(
                     file_handler.read(),
-                    self.testcase_yaml_schema
+                    self.testsuite_yaml_schema
                 )
             except YAMLError as err:
                 if hasattr(err, "context"):
                     err.context = f"while parsing a file \n" \
-                                  f"{testcase_yaml_fspath}\n" + err.context
+                                  f"{testsuite_yaml_fspath}\n" + err.context
                 raise err
             yaml_data = yaml_data.data
         return yaml_data
