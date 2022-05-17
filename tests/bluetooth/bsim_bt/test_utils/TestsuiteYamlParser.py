@@ -51,8 +51,8 @@ class TestsuiteYamlParser:
     def __init__(self):
         pass
 
-    def load(self, testsuite_yaml_fspath):
-        with open(testsuite_yaml_fspath, "r") as file_handler:
+    def load(self, testsuite_yaml_path):
+        with open(testsuite_yaml_path, "r") as file_handler:
             try:
                 yaml_data = strictyaml_load(
                     file_handler.read(),
@@ -61,7 +61,7 @@ class TestsuiteYamlParser:
             except YAMLError as err:
                 if hasattr(err, "context"):
                     err.context = f"while parsing a file \n" \
-                                  f"{testsuite_yaml_fspath}\n" + err.context
+                                  f"{testsuite_yaml_path}\n" + err.context
                 raise err
             yaml_data = yaml_data.data
         return yaml_data

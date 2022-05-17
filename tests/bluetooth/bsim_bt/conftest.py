@@ -99,13 +99,13 @@ def is_main_worker(config):
     return not is_worker_input
 
 
-def pytest_collect_file(parent, path):
+def pytest_collect_file(parent, file_path):
     """
     Analyse only bs_testsuite.yaml or bs_testsuite.yml files.
     """
-    if path.basename.startswith("bs_testsuite") and \
-            (path.ext == ".yaml" or path.ext == ".yml"):
-        return YamlFile.from_parent(parent, fspath=path)
+    if file_path.name.startswith("bs_testsuite") and \
+            (file_path.suffix == ".yaml" or file_path.suffix == ".yml"):
+        return YamlFile.from_parent(parent, path=file_path)
 
 
 def pytest_collection_finish(session):
@@ -126,10 +126,10 @@ def pytest_collection_finish(session):
 
 class YamlFile(pytest.File):
     def collect(self):
-        test_src_path = self.fspath.dirpath()
+        test_src_path = self.path.parent
 
         parser = TestsuiteYamlParser()
-        yaml_data = parser.load(self.fspath)
+        yaml_data = parser.load(self.path)
         common_config = yaml_data.get("common", {})
         testscenarios = yaml_data.get("tests", {})
         for testscenario_name, testscenario_config in testscenarios.items():
