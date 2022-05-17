@@ -129,7 +129,7 @@ Each test consists of two phase:
             ``FAILED`` - otherwise as ``PASSED``
 
 There is also possibility to generate final report. More information about this
-can be found in chapter :ref:`reporting (from Pytest)`.
+can be found in chapter `reporting (from Pytest)`_.
 
 Minimal test configuration
 **************************
