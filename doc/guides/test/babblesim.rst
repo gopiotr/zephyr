@@ -27,7 +27,7 @@ possible to define how tests gathering should looks like and what should be
 performed during test run. It enables to design own plugin dedicated for
 BabbleSim tests.
 
-Using Pytest test runner allow to use ready-made functionalities as:
+Using Pytest test runner allows to use ready-made functionalities as:
 
 - scanning directories for tests' definitions
 - filtering tests by name (including/excluding tests)
@@ -50,13 +50,13 @@ user's Zephyr and BabbleSim installation place):
     export BSIM_OUT_PATH="${HOME}/bsim/"
     export BSIM_COMPONENTS_PATH="${HOME}/bsim/components/"
 
-Next below command should be called:
+Next below command should be called (from ZEPHYR_BASE directory level):
 
 ::
 
     pytest tests/bluetooth/bsim_bt
 
-Exemplary output could looks like:
+Exemplary output could look like:
 
 ::
 
@@ -110,11 +110,11 @@ tests defined inside it. Exemplary ``bs_testsuite.yaml`` for
             name: bs_2G4_phy_v1
             sim_length: 60e6
 
-This YAML file define necessary information to build and run BabbleSim's tests.
+This YAML file define necessary information to build and run BabbleSim tests.
 Next after collecting all tests, Pytest filter tests if some filter rules were
 passed in CLI.
 
-Each test consists of two phase:
+Each test consists of two phases:
 
 1.  Building process
         -   get CMake extra arguments from ``bs_testsuite.yaml`` file and
@@ -134,17 +134,17 @@ can be found in chapter `reporting (from Pytest)`_.
 Minimal test configuration
 **************************
 
-When test's source code is already prepared, then to make it possible to build
+When test source code is already prepared, then to make it possible to build
 and run them by Pytest, the ``bs_testsuite.yaml`` file have to be defined.
-Let's assume, that exemplary test's source is placed in
+Let's assume, that exemplary test source is placed in
 ``tests\bluetooth\bsim_bt\some_test`` directory. Yaml file have to be defined
 inside them.
 
 Minimal ``bs_testsuite.yaml`` file consists list of test scenarios with
-BabbleSim's configs. Each test scenario must have unique name among all
-test scenarios (otherwise Pytest will rise an error). This is very significant,
-because this name will be used to mark BabbleSim's simulation ID and to
-create test output directory.
+BabbleSim configs. Each test scenario must have unique name among all test
+scenarios (otherwise Pytest will rise an error). This is very significant,
+because this name will be used to mark BabbleSim simulation ID and to create
+test output directory.
 
 Exemplary basic ``bs_testsuite.yaml`` file could look like:
 
@@ -162,14 +162,14 @@ Exemplary basic ``bs_testsuite.yaml`` file could look like:
             name: bs_2G4_phy_v1
             sim_length: 60e6
 
-After run Pytest, it will scan such prepared yaml file and will save
+After running Pytest, it will scan such prepared yaml file and will save
 ``bluetooth.bsim.some_test`` test on list of available tests. During test
 execution following CMake command will be called:
 
 ::
 
-    cmake -B${ZEPHYR_BASE}/bsim_tests_out/bluetooth_bsim_some_test/build
-    -S${ZEPHYR_BASE}/tests/bluetooth/bsim_bt/some_test -GNinja
+    cmake -B${ZEPHYR_BASE}/bsim_tests_out/bluetooth_bsim_some_test/build \
+    -S${ZEPHYR_BASE}/tests/bluetooth/bsim_bt/some_test -GNinja \
     -DBOARD_ROOT=${ZEPHYR_BASE} -DBOARD=nrf52_bsim -DCONF_FILE=prj.conf
 
 As it can be observed some options are set by default:
@@ -182,13 +182,14 @@ As it can be observed some options are set by default:
 4.  configuration file is ``prj.conf``
 
 At this moment only last option (configuration file) can be changed by user in
-``bs_testsuite.yaml`` file. It will be described more detailed in next chapter.
+``bs_testsuite.yaml`` file. It will be described more detailed in chapter
+`extra_args`_.
 
-After run this CMake command, the Ninja generator is run. Next built
+After running this CMake command, the Ninja generator is run. Next built
 ``zephyr.exe`` application is copied into ``${BSIM_OUT_PATH}/bin`` directory and
 renamed into ``bs_nrf52_bsim_bluetooth_bsim_some_test``.
 
-Finally for such defined tests in yaml file, following BabbleSim's command is
+Finally for such defined tests in yaml file, following BabbleSim command is
 prepared:
 
 ::
@@ -197,7 +198,7 @@ prepared:
     ${BSIM_OUT_PATH}/bin/bs_nrf52_bsim_bluetooth_bsim_some_test -s=bluetooth_bsim_some_test -d=1 -testid=name_of_second_device &
     ${BSIM_OUT_PATH}/bin/bs_2G4_phy_v1 -s=bluetooth_bsim_some_test -D=2 -sim_length=60e6
 
-It is based on those rules:
+It is crated basing on those rules:
 
 1.  ``-s=bluetooth_bsim_some_test`` - simulation ID is the same as test scenario
     name (dots are replaced by underscore)
@@ -213,7 +214,7 @@ Additional features
 extra_args
 ----------
 
-If user would like to pass some extra arguments to CMake command it can be done
+If user would like to pass some extra arguments to CMake command, it can be done
 by define ``extra_args`` option in yaml file. Listed arguments will be joined
 entirely to CMake call, so they should already start with "-D" (or similar)
 characters. By this option special conf file name could be passed. If it is not
@@ -234,8 +235,8 @@ will be used in CMake command as follow:
 
 ::
 
-    cmake -B${ZEPHYR_BASE}/bsim_tests_out/bluetooth_bsim_app_split/build
-    -S${ZEPHYR_BASE}/tests/bluetooth/bsim_bt/bsim_test_app -GNinja
+    cmake -B${ZEPHYR_BASE}/bsim_tests_out/bluetooth_bsim_app_split/build \
+    -S${ZEPHYR_BASE}/tests/bluetooth/bsim_bt/bsim_test_app -GNinja \
     -DBOARD_ROOT=${ZEPHYR_BASE} -DBOARD=nrf52_bsim -DCONF_FILE=prj_split.conf
 
 extra_run_args in bsim_config
@@ -245,7 +246,7 @@ If user would like to pass some extra arguments to run simulated device or
 wireless medium it can be done by ``extra_run_args`` option added in proper
 place in ``bsim_config`` option
 
-For example such defined ``bsim_config`` with ``extra_run_args`` options in
+For example, such defined ``bsim_config`` with ``extra_run_args`` options in
 ``bs_testsuite.yaml`` file:
 
 .. code-block:: yaml
@@ -284,19 +285,19 @@ Similar to "classic" Twister test defining approach, there is also possibility
 to define ``common`` option used by all test scenarios defined in
 ``bs_testsuite.yaml`` file.
 
-When "common" entry is used in bs_testsuite.yaml file, then test scenario's
+When "common" entry is used in bs_testsuite.yaml file, then test scenario
 options can be updated with following rules:
 
 1.  If the same option occurs in ``common`` and test scenario entries and
     they are a **list** (like for example ``extra_args``) then join them
     together.
-2.  If the same options occurs in "common" and test scenario entries and
+2.  If the same options occur in "common" and test scenario entries and
     they are **NOT a list** (like for example ``bsim_config``), then do **NOT**
-    overwrite test scenario's option by common one.
+    overwrite test scenario option by common one.
 3.  If some option occurs in ``common`` and not occur in tests scenario entry,
-    then add this option to test scenario's opitons.
+    then add this option to test scenario opitons.
 
-For example such defined ``extra_args`` in ``common`` option in
+For example, such defined ``extra_args`` in ``common`` option in
 ``bs_testsuite.yaml`` file:
 
 .. code-block:: yaml
@@ -323,15 +324,15 @@ will be used during defining CMake command for both tests:
 ::
 
     # for bluetooth.bsim.app_split:
-    cmake -B${ZEPHYR_BASE}/bsim_tests_out/bluetooth_bsim_app_split/build
-    -S${ZEPHYR_BASE}/tests/bluetooth/bsim_bt/bsim_test_app -GNinja
-    -DBOARD_ROOT=${ZEPHYR_BASE} -DBOARD=nrf52_bsim -DCONF_FILE=prj_split.conf
+    cmake -B${ZEPHYR_BASE}/bsim_tests_out/bluetooth_bsim_app_split/build \
+    -S${ZEPHYR_BASE}/tests/bluetooth/bsim_bt/bsim_test_app -GNinja \
+    -DBOARD_ROOT=${ZEPHYR_BASE} -DBOARD=nrf52_bsim -DCONF_FILE=prj_split.conf \
     -DCMAKE_C_FLAGS="-Werror"
 
     # for bluetooth.bsim.app_split_low_lat:
-    cmake -B${ZEPHYR_BASE}/bsim_tests_out/bluetooth_bsim_app_split/build
-    -S${ZEPHYR_BASE}/tests/bluetooth/bsim_bt/bsim_test_app -GNinja
-    -DBOARD_ROOT=${ZEPHYR_BASE} -DBOARD=nrf52_bsim
+    cmake -B${ZEPHYR_BASE}/bsim_tests_out/bluetooth_bsim_app_split/build \
+    -S${ZEPHYR_BASE}/tests/bluetooth/bsim_bt/bsim_test_app -GNinja \
+    -DBOARD_ROOT=${ZEPHYR_BASE} -DBOARD=nrf52_bsim \
     -DCONF_FILE=prj_split_low_lat.conf -DCMAKE_C_FLAGS="-Werror"
 
 
@@ -339,7 +340,7 @@ built_exe_name
 --------------
 
 Some of tests do not need to be rebuilt every time and they can base on once
-built exe file. For this case ``built_exe_name`` option can be used. It define
+built exe file. For this case ``built_exe_name`` option can be used. It defines
 how exe file name should looks like in ``${BSIM_OUT_PATH}/bin/`` directory.
 Normally this exe name is based on test scenario name as follow:
 
@@ -365,7 +366,7 @@ Exemplary ``bs_testsuite.yaml`` file can looks like:
           built_exe_name: "bs_nrf52_bsim_bluetooth_bsim_app_split"
           ...
 
-In this case when ``bluetooth.bsim.app_split`` test is run, then after building
+In this case when ``bluetooth.bsim.app_split`` test is run, after building
 process, built ``zephyr.exe`` file will be moved into ``${BSIM_OUT_PATH}/bin/``
 directory and renamed into ``bs_nrf52_bsim_bluetooth_bsim_app_split``. When
 ``bluetooth.bsim.app_split_encrypted`` test is run, the building process will be
@@ -373,21 +374,21 @@ skipped and this test will use already built exe file.
 
 .. warning::
 
-    ``built_exe_name`` have to be unique among whole BabbleSim's tests to avoid
-    exe file overwriting. So it is recommended to use for this at least one
+    ``built_exe_name`` has to be unique among whole BabbleSim tests to avoid
+    exe file overwriting. So, it is recommended to use for this at least one
     affected test name (which ensures uniqueness).
 
 Information about what exe applications were already built are stored in
 ``${ZEPHYR_BASE}/bsim_tests_out/build_info.json`` file. It is very important
 when tests are run in parallel and two tests which are based on the same exe
-file, are run in the same time. Then to avoid built overwriting, special lock
-mechanism is used and in this situation when first test start building process,
-second one wait until first will finish its job.
+file, are run at the same time. Then to avoid built overwriting, special lock
+mechanism is used and, in this situation, when first test start building
+process, second one wait until first will finish its job.
 
 log saving
 ----------
 
-During run BabbleSim's tests by Pytest, following logs are saved:
+During run BabbleSim tests by Pytest, following logs are saved:
 
 1.  Internal logs from plugin are saved in
     ``${ZEPHYR_BASE}/bsim_tests_out/bsim_test_plugin.log`` file. They include
@@ -403,8 +404,8 @@ During run BabbleSim's tests by Pytest, following logs are saved:
 tests filtering (from Pytest)
 -----------------------------
 
-Pytest provide filtering system based on test's name. To use them, special
-argument ``-k`` (from "keyword") have to be added during Pytest call. It helps
+Pytest provide filtering system based on test name. To use them, special
+argument ``-k`` (from "keyword") has to be added during Pytest call. It helps
 to run only desirable tests.
 
 Usage examples:
@@ -431,7 +432,8 @@ added to Pytest call. For example:
 
 ::
 
-    pytest tests/bluetooth/bsim_bt --junitxml=${ZEPHYR_BASE}/bsim_tests_out/report.xml
+    pytest tests/bluetooth/bsim_bt \
+    --junitxml=${ZEPHYR_BASE}/bsim_tests_out/report.xml
 
 parallelization (from Pytest)
 -----------------------------
@@ -452,8 +454,8 @@ Plugin debugging
 
 For development of Pytest plugin it may be necessary to debug it. For this
 purpose ``pytest.set_trace()`` method can be very useful. It should be added
-into source code in breakpoint line and then after run tests by Pytest, program
-will stop at this method and Python Debugger (``pdb``) will be enabled.
+into source code in breakpoint line and then after running tests by Pytest,
+program will stop at this method and Python Debugger (``pdb``) will be enabled.
 
 More information about debugging with ``pdb`` can be found here:
 https://docs.python.org/3/library/pdb.html
