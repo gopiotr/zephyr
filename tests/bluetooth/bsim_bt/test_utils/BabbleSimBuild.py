@@ -7,6 +7,7 @@ import shutil
 import json
 import time
 from filelock import FileLock
+from test_utils.BabbleSimError import BabbleSimError
 
 LOGGER_NAME = f"bsim_plugin.{__name__.split('.')[-1]}"
 logger = logging.getLogger(LOGGER_NAME)
@@ -87,8 +88,9 @@ class BabbleSimBuild:
             build_status = self._get_status_from_build_info_file()
             time.sleep(wait_for_build_duration)
             if time.time() > build_timeout:
-                logger.error("Wait for build timeout.")
-                raise TimeoutError
+                failure_msg = "Wait for build timeout"
+                logger.error(failure_msg)
+                raise BabbleSimError(failure_msg)
 
         if build_status == BuildStatus.finished:
             already_built_flag = True
@@ -166,7 +168,7 @@ class BabbleSimBuild:
         if result.returncode != 0:
             logger.error("CMake error \nstdout_data: \n%s \nstderr_data: \n%s",
                          result.stdout, result.stderr)
-            raise subprocess.CalledProcessError
+            raise BabbleSimError("CMake error")
 
     def _run_ninja(self):
         ninja_args = [
@@ -193,7 +195,7 @@ class BabbleSimBuild:
         if result.returncode != 0:
             logger.error("Ninja error \nstdout_data: \n%s \nstderr_data: \n%s",
                          result.stdout, result.stderr)
-            raise subprocess.CalledProcessError
+            raise BabbleSimError("Ninja error")
 
     def _copy_exe(self):
         """

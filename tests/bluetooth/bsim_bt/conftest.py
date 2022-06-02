@@ -7,6 +7,7 @@ import json
 from test_utils.TestsuiteYamlParser import TestsuiteYamlParser
 from test_utils.BabbleSimBuild import BabbleSimBuild
 from test_utils.BabbleSimRun import BabbleSimRun
+from test_utils.BabbleSimError import BabbleSimError
 
 LOGGER_NAME = "bsim_plugin"
 logger = logging.getLogger(LOGGER_NAME)
@@ -219,8 +220,9 @@ class YamlItem(pytest.Item):
 
     def repr_failure(self, excinfo, style=None):
         """Called when self.runtest() raises an exception."""
-        if isinstance(excinfo.value, YamlException):
-            return "Test fails"
+        if isinstance(excinfo.value, BabbleSimError):
+            failure_msg = excinfo.value.args[0]
+            return failure_msg
 
 
 class YamlException(Exception):

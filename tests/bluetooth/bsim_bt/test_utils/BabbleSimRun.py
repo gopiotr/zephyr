@@ -4,6 +4,7 @@ import sys
 import subprocess
 import multiprocessing as mp
 import abc
+from test_utils.BabbleSimError import BabbleSimError
 
 LOGGER_NAME = f"bsim_plugin.{__name__.split('.')[-1]}"
 logger = logging.getLogger(LOGGER_NAME)
@@ -86,18 +87,25 @@ class BabbleSimRun:
 
     def _verify_run_bsim_results(self):
         failure_occur_flag = False
+        failures_msg = []
 
         for device in self.devices:
             if device.run_process_result.get() != 0:
-                logger.error("Failure during simulate %s device", device.name)
+                failure_msg = f"Failure during simulate {device.name} device"
+                failures_msg += [failure_msg]
+                logger.error(failure_msg)
                 failure_occur_flag = True
 
         if self.phy.run_process_result.get() != 0:
-            logger.error("Failure during simulate %s physical layer",
-                         self.phy.name)
+            failure_msg = \
+                f"Failure during simulate {self.phy.name} physical layer"
+            failures_msg += [failure_msg]
+            logger.error(failure_msg)
             failure_occur_flag = True
 
-        assert failure_occur_flag is False
+        if failure_occur_flag:
+            failures_msg = "\n".join(failures_msg)
+            raise BabbleSimError(failures_msg)
 
 
 class BabbleSimObject(abc.ABC):
@@ -132,7 +140,8 @@ class Device(BabbleSimObject):
     Device represents single node/application in whole simulation like "central"
     or "peripheral" device.
     """
-    def __init__(self, sim_id, exe_path, device_no, device_config, test_out_path):
+    def __init__(self, sim_id, exe_path, device_no, device_config,
+                 test_out_path):
         name = device_config["testid"]
         extra_run_args = device_config.get("extra_run_args", [])
         self.device_no = device_no
@@ -162,7 +171,8 @@ class Phy(BabbleSimObject):
         self.sim_length = phy_config["sim_length"]
         self.number_devices = number_devices
 
-        super().__init__(sim_id, name, exe_phy_path, extra_run_args, test_out_path)
+        super().__init__(sim_id, name, exe_phy_path, extra_run_args,
+                         test_out_path)
 
     def _get_cmd(self):
         run_phy_args = [
