@@ -159,7 +159,7 @@ class YamlItem(pytest.Item):
         self.extra_build_args = testscenario_config.get("extra_args", [])
         bsim_config = testscenario_config["bsim_config"]
         self.devices = bsim_config.get("devices", [])
-        self.medium = bsim_config.get("medium", {})
+        self.phy = bsim_config.get("physical_layer", {})
         default_general_exe_name = f"bs_nrf52_bsim_{self.sim_id}"
         self.general_exe_name = \
             bsim_config.get("built_exe_name", default_general_exe_name)
@@ -213,7 +213,7 @@ class YamlItem(pytest.Item):
             self.sim_id,
             self.general_exe_name,
             self.devices,
-            self.medium
+            self.phy
         )
         bs_runner.run()
 

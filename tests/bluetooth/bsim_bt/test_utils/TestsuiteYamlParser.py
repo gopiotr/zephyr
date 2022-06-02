@@ -11,11 +11,11 @@ class TestsuiteYamlParser:
         {
             "devices": Seq(Map(
                 {
-                    "id": Str(),
+                    "testid": Str(),
                     Optional("extra_run_args"): Seq(Str()),
                 }
             )),
-            "medium": Map(
+            "physical_layer": Map(
                 {
                     "name": Str(),
                     "sim_length": Str(),
@@ -30,8 +30,6 @@ class TestsuiteYamlParser:
         {
             Optional("bsim_config"): bsim_config_schema,
             Optional("extra_args"): Seq(Str()),
-            Optional("platform_allow"): Seq(Str()),
-            Optional("tags"): Seq(Str()),
         }
     )
 

@@ -3,10 +3,6 @@ common:
     - '-DCMAKE_C_FLAGS="-Werror"'
     - "-DCONFIG_COVERAGE=y"
     - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-  platform_allow:
-    - nrf52_bsim
-  tags: 
-    - bluetooth
 
 tests:
   bluetooth.bsim.app_split:
@@ -16,16 +12,16 @@ tests:
       built_exe_name: "bs_nrf52_bsim_bluetooth_bsim_app_split"
       devices:
         -
-          id: peripheral
+          testid: peripheral
           extra_run_args:
             - "-RealEncryption=0"
             - "-rs=23"
         -
-          id: central
+          testid: central
           extra_run_args:
             - "-RealEncryption=0"
             - "-rs=6"
-      medium:
+      physical_layer:
         name: bs_2G4_phy_v1
         sim_length: 20e6
 
@@ -36,16 +32,16 @@ tests:
       built_exe_name: "bs_nrf52_bsim_bluetooth_bsim_app_split"
       devices:
         -
-          id: peripheral
+          testid: peripheral
           extra_run_args:
             - "-RealEncryption=1"
             - "-rs=23"
         -
-          id: central_encrypted
+          testid: central_encrypted
           extra_run_args:
             - "-RealEncryption=1"
             - "-rs=6"
-      medium:
+      physical_layer:
         name: bs_2G4_phy_v1
         sim_length: 20e6
 
@@ -55,16 +51,16 @@ tests:
     bsim_config:
       devices:
         -
-          id: peripheral
+          testid: peripheral
           extra_run_args:
             - "-RealEncryption=0"
             - "-rs=23"
         -
-          id: central
+          testid: central
           extra_run_args:
             - "-RealEncryption=0"
             - "-rs=6"
-      medium:
+      physical_layer:
         name: bs_2G4_phy_v1
         sim_length: 20e6
 
@@ -74,15 +70,15 @@ tests:
     bsim_config:
       devices:
         -
-          id: peripheral
+          testid: peripheral
           extra_run_args:
             - "-RealEncryption=1"
             - "-rs=23"
         -
-          id: central_encrypted
+          testid: central_encrypted
           extra_run_args:
             - "-RealEncryption=1"
             - "-rs=6"
-      medium:
+      physical_layer:
         name: bs_2G4_phy_v1
         sim_length: 20e6

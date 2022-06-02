@@ -24,15 +24,14 @@ RUN_SIM_TIMEOUT_DURATION = 300.0  # [s]
 
 class BabbleSimRun:
     def __init__(self, test_out_path, sim_id, general_exe_name, devices_config,
-                 medium_config):
+                 phy_config):
         general_exe_path = os.path.join(BSIM_BIN_DIR_PATH, general_exe_name)
         self.devices = []
         for device_no, device_config in enumerate(devices_config):
             device = Device(sim_id, general_exe_path, device_no, device_config,
                             test_out_path)
             self.devices.append(device)
-        self.medium = Medium(sim_id, len(self.devices), medium_config,
-                             test_out_path)
+        self.phy = Phy(sim_id, len(self.devices), phy_config, test_out_path)
 
     def run(self):
         self._log_run_bsim_cmd()
@@ -40,15 +39,15 @@ class BabbleSimRun:
         if mp.get_start_method(allow_none=True) != "spawn":
             mp.set_start_method("spawn", force=True)
 
-        number_processes = len(self.devices) + 1  # devices + medium
+        number_processes = len(self.devices) + 1  # devices + phy
         pool = mp.Pool(processes=number_processes)
 
         for device in self.devices:
             device.run_process_result = \
                 pool.apply_async(run_process, device.run_process_args)
 
-        self.medium.run_process_result = \
-            pool.apply_async(run_process, self.medium.run_process_args)
+        self.phy.run_process_result = \
+            pool.apply_async(run_process, self.phy.run_process_args)
 
         # TODO: add timeout here
         pool.close()
@@ -64,8 +63,8 @@ class BabbleSimRun:
             device_cmd_log = " ".join(device.process_cmd)
             general_log_msg += f"\n{device_cmd_log} &"
 
-        medium_cmd_log = " ".join(self.medium.process_cmd)
-        general_log_msg += f"\n{medium_cmd_log}"
+        phy_cmd_log = " ".join(self.phy.process_cmd)
+        general_log_msg += f"\n{phy_cmd_log}"
 
         logger.info(general_log_msg)
 
@@ -78,8 +77,8 @@ class BabbleSimRun:
             if os.path.exists(err_file_path):
                 general_log_msg += f"\n{err_file_path}"
 
-        general_log_msg += f"\n{self.medium.log_file_base_path}_out.log"
-        err_file_path = f"{self.medium.log_file_base_path}_err.log"
+        general_log_msg += f"\n{self.phy.log_file_base_path}_out.log"
+        err_file_path = f"{self.phy.log_file_base_path}_err.log"
         if os.path.exists(err_file_path):
             general_log_msg += f"\n{err_file_path}"
 
@@ -93,8 +92,9 @@ class BabbleSimRun:
                 logger.error("Failure during simulate %s device", device.name)
                 failure_occur_flag = True
 
-        if self.medium.run_process_result.get() != 0:
-            logger.error("Failure during simulate %s medium", self.medium.name)
+        if self.phy.run_process_result.get() != 0:
+            logger.error("Failure during simulate %s physical layer",
+                         self.phy.name)
             failure_occur_flag = True
 
         assert failure_occur_flag is False
@@ -103,7 +103,7 @@ class BabbleSimRun:
 class BabbleSimObject(abc.ABC):
     """
     Abstract class to store information about BabbleSim "objects" like devices
-    (nodes/applications) or wireless medium.
+    (nodes/applications) or physical layer.
     """
     def __init__(self, sim_id, name, exe_path, extra_run_args, test_out_path):
         self.sim_id = sim_id
@@ -133,7 +133,7 @@ class Device(BabbleSimObject):
     or "peripheral" device.
     """
     def __init__(self, sim_id, exe_path, device_no, device_config, test_out_path):
-        name = device_config["id"]
+        name = device_config["testid"]
         extra_run_args = device_config.get("extra_run_args", [])
         self.device_no = device_no
 
@@ -150,29 +150,29 @@ class Device(BabbleSimObject):
         return run_app_cmd
 
 
-class Medium(BabbleSimObject):
+class Phy(BabbleSimObject):
     """
-    Medium represents BabbleSim's wireless transport medium like
+    Phy represents BabbleSim's wireless transport physical layer like
     "bs_2G4_phy_v1".
     """
-    def __init__(self, sim_id, number_devices, medium_config, test_out_path):
-        name = medium_config["name"]
-        exe_medium_path = os.path.join(BSIM_BIN_DIR_PATH, name)
-        extra_run_args = medium_config.get("extra_run_args", [])
-        self.sim_length = medium_config["sim_length"]
+    def __init__(self, sim_id, number_devices, phy_config, test_out_path):
+        name = phy_config["name"]
+        exe_phy_path = os.path.join(BSIM_BIN_DIR_PATH, name)
+        extra_run_args = phy_config.get("extra_run_args", [])
+        self.sim_length = phy_config["sim_length"]
         self.number_devices = number_devices
 
-        super().__init__(sim_id, name, exe_medium_path, extra_run_args, test_out_path)
+        super().__init__(sim_id, name, exe_phy_path, extra_run_args, test_out_path)
 
     def _get_cmd(self):
-        run_medium_args = [
+        run_phy_args = [
             f'-s={self.sim_id}',
             f'-D={self.number_devices}',
             f'-sim_length={self.sim_length}'
         ]
-        run_medium_args += self.extra_run_args
-        run_medium_cmd = [self.exe_path] + run_medium_args
-        return run_medium_cmd
+        run_phy_args += self.extra_run_args
+        run_phy_cmd = [self.exe_path] + run_phy_args
+        return run_phy_cmd
 
 
 def run_process(process_cmd, log_file_base_path):

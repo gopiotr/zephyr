@@ -1,9 +1,5 @@
 tests:
   bluetooth.bsim.gatt:
-    platform_allow:
-      - nrf52_bsim
-    tags:
-      - bluetooth
     extra_args:
       - '-DCMAKE_C_FLAGS="-Werror"'
       - "-DCONFIG_COVERAGE=y"
@@ -11,9 +7,9 @@ tests:
     bsim_config:
       devices:
         -
-          id: gatt_client
+          testid: gatt_client
         -
-          id: gatt_server
-      medium:
+          testid: gatt_server
+      physical_layer:
         name: bs_2G4_phy_v1
         sim_length: 60e6

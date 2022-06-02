@@ -1,19 +1,15 @@
 tests:
   bluetooth.bsim.advx:
-    platform_allow:
-      - nrf52_bsim
-    tags:
-      - bluetooth
     extra_args:
       - '-DCMAKE_C_FLAGS="-Werror"'
       - "-DCONFIG_COVERAGE=y"
       - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
     bsim_config:
       devices:
+        - 
+          testid: advx
         -
-          id: advx
-        -
-          id: scanx
-      medium:
+          testid: scanx
+      physical_layer:
         name: bs_2G4_phy_v1
         sim_length: 60e6

@@ -3,17 +3,13 @@ common:
     - '-DCMAKE_C_FLAGS="-Werror"'
     - "-DCONFIG_COVERAGE=y"
     - "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-  platform_allow:
-    - nrf52_bsim
-  tags: 
-    - bluetooth
   bsim_config:
     devices:
       -
-        id: central
+        testid: central
       -
-        id: peripheral
-    medium:
+        testid: peripheral
+    physical_layer:
       name: bs_2G4_phy_v1
       sim_length: 200e6
 
