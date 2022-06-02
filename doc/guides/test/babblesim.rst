@@ -103,10 +103,10 @@ tests defined inside it. Exemplary ``bs_testsuite.yaml`` for
         bsim_config:
           devices:
             -
-              id: gatt_client
+              testid: gatt_client
             -
-              id: gatt_server
-          medium:
+              testid: gatt_server
+          phy_layer:
             name: bs_2G4_phy_v1
             sim_length: 60e6
 
@@ -123,7 +123,7 @@ Each test consists of two phases:
         -   run Ninja generator
 2.  Run simulation
         -   parse ``bsim_config`` from ``bs_testsuite.yaml`` file and prepare
-            suitable commands to run each simulated devices and wireless medium
+            suitable commands to run each simulated devices and physical layer
         -   run simulation
         -   if some error/failure occurs during run simulation then mark test as
             ``FAILED`` - otherwise as ``PASSED``
@@ -155,10 +155,10 @@ Exemplary basic ``bs_testsuite.yaml`` file could look like:
         bsim_config:
           devices:
             -
-              id: name_of_first_device
+              testid: name_of_first_device
             -
-              id: name_of_second_device
-          medium:
+              testid: name_of_second_device
+          phy_layer:
             name: bs_2G4_phy_v1
             sim_length: 60e6
 
@@ -204,9 +204,9 @@ It is crated basing on those rules:
     name (dots are replaced by underscore)
 2.  ``-testid=name_of_first_device`` - test ID for particular simulated devices
     is taken from yaml file from ``bsim_config -> devices`` options list
-3.  Wireless medium name and (``bs_2G4_phy_v1``) and simulation length
-    ``-sim_length=60e6`` are taken from yaml file from ``bsim_config -> medium``
-    options list
+3.  Physical layer name (``bs_2G4_phy_v1``) and simulation length
+    ``-sim_length=60e6`` are taken from yaml file from
+    ``bsim_config -> phy_layer`` options list
 
 Additional features
 *******************
@@ -243,7 +243,7 @@ extra_run_args in bsim_config
 -----------------------------
 
 If user would like to pass some extra arguments to run simulated device or
-wireless medium it can be done by ``extra_run_args`` option added in proper
+physical layer it can be done by ``extra_run_args`` option added in proper
 place in ``bsim_config`` option
 
 For example, such defined ``bsim_config`` with ``extra_run_args`` options in
@@ -256,14 +256,14 @@ For example, such defined ``bsim_config`` with ``extra_run_args`` options in
         bsim_config:
           devices:
             -
-              id: peripheral
+              testid: peripheral
               extra_run_args:
                 - "-rs=23"
             -
-              id: central
+              testid: central
               extra_run_args:
                 - "-rs=6"
-          medium:
+          phy_layer:
             name: bs_2G4_phy_v1
             sim_length: 20e6
             extra_run_args:
@@ -397,16 +397,39 @@ During run BabbleSim tests by Pytest, following logs are saved:
 2.  Logs from building process (``cmake_out.log`` and ``ninja_out.log``) are
     saved in ``${ZEPHYR_BASE}/bsim_tests_out/${TEST_NAME}/build`` directory.
 3.  Logs from executed simulation (from each simulated devices like ``central``
-    or ``peripheral`` and from wireless medium) are stored in
+    or ``peripheral`` and from physical layer) are stored in
     ``${ZEPHYR_BASE}/bsim_tests_out/${TEST_NAME}`` directory.
 
 
-tests filtering (from Pytest)
+tests selection (from Pytest)
 -----------------------------
 
-Pytest provide filtering system based on test name. To use them, special
-argument ``-k`` (from "keyword") has to be added during Pytest call. It helps
-to run only desirable tests.
+**Tests selection based on their node ID**
+
+To specify particular test, it should be passed full path to specific yaml file,
+and test name after double colon (::) during Pytest call.
+
+Usage examples:
+
+::
+
+    # to run only bluetooth.bsim.eatt_encryption test:
+    pytest tests/bluetooth/bsim_bt/bsim_test_eatt/bs_testsuite.yaml::bluetooth.bsim.eatt_encryption
+
+    # # to run both bluetooth.bsim.eatt_encryption and bluetooth.bsim.eatt_collision tests:
+    pytest \
+    tests/bluetooth/bsim_bt/bsim_test_eatt/bs_testsuite.yaml::bluetooth.bsim.eatt_encryption \
+    tests/bluetooth/bsim_bt/bsim_test_eatt/bs_testsuite.yaml::bluetooth.bsim.eatt_collision
+
+
+More information about how this filter works can be found here:
+https://docs.pytest.org/en/latest/example/markers.html#selecting-tests-based-on-their-node-id
+
+**Tests selection based on their name**
+
+In some cases it will be easier to select particular test or group of tests by
+their name. To do this, special argument ``-k`` (from "keyword") has to be added
+during Pytest call.
 
 Usage examples:
 
