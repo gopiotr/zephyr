@@ -429,10 +429,12 @@ class ProjectBuilder(FilterBuilder):
             res = self.cmake()
             if self.instance.status in ["failed", "error"]:
                 pipeline.put({"op": "report", "test": self.instance})
+                logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: report         - instance: {self.instance.name}")
             elif self.options.cmake_only:
                 if self.instance.status is None:
                     self.instance.status = "passed"
                 pipeline.put({"op": "report", "test": self.instance})
+                logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: report         - instance: {self.instance.name}")
             else:
                 # Here we check the runtime filter results coming from running cmake
                 if self.instance.name in res['filter'] and res['filter'][self.instance.name]:
@@ -442,8 +444,10 @@ class ProjectBuilder(FilterBuilder):
                     results.skipped_runtime += 1
                     self.instance.add_missing_case_status("skipped")
                     pipeline.put({"op": "report", "test": self.instance})
+                    logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: report         - instance: {self.instance.name}")
                 else:
                     pipeline.put({"op": "build", "test": self.instance})
+                    logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: build          - instance: {self.instance.name}")
 
         elif op == "build":
             logger.debug("build test: %s" % self.instance.name)
@@ -452,6 +456,7 @@ class ProjectBuilder(FilterBuilder):
                 self.instance.status = "error"
                 self.instance.reason = "Build Failure"
                 pipeline.put({"op": "report", "test": self.instance})
+                logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: report         - instance: {self.instance.name}")
             else:
                 # Count skipped cases during build, for example
                 # due to ram/rom overflow.
@@ -462,15 +467,19 @@ class ProjectBuilder(FilterBuilder):
                 if res.get('returncode', 1) > 0:
                     self.instance.add_missing_case_status("blocked", self.instance.reason)
                     pipeline.put({"op": "report", "test": self.instance})
+                    logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: report         - instance: {self.instance.name}")
                 else:
                     pipeline.put({"op": "gather_metrics", "test": self.instance})
+                    logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: gather_metrics - instance: {self.instance.name}")
 
         elif op == "gather_metrics":
             self.gather_metrics(self.instance)
             if self.instance.run and self.instance.handler:
                 pipeline.put({"op": "run", "test": self.instance})
+                logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: run            - instance: {self.instance.name}")
             else:
                 pipeline.put({"op": "report", "test": self.instance})
+                logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: report         - instance: {self.instance.name}")
 
         # Run the generated binary using one of the supported handlers
         elif op == "run":
@@ -488,6 +497,7 @@ class ProjectBuilder(FilterBuilder):
                     "reason": self.instance.reason
                     }
                 )
+                logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: report         - instance: {self.instance.name}")
             except RuntimeError as e:
                 logger.error(f"RuntimeError: {e}")
                 traceback.print_exc()
@@ -503,6 +513,7 @@ class ProjectBuilder(FilterBuilder):
                     "op": "cleanup",
                     "test": self.instance
                 })
+                logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: cleanup        - instance: {self.instance.name}")
 
         elif op == "cleanup":
             if self.options.device_testing or self.options.prep_artifacts_for_testing:
@@ -840,13 +851,16 @@ class TwisterRunner:
                 instance.status = None
                 if test_only and instance.run:
                     pipeline.put({"op": "run", "test": instance})
+                    logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: run            - instance: {instance.name}")
                 else:
                     pipeline.put({"op": "cmake", "test": instance})
+                    logger.debug(f"{os.getpid()} - PIPELINE_PUT - op: cmake          - instance: {instance.name}")
 
     def pipeline_mgr(self, pipeline, done_queue, lock, results):
         while True:
             try:
                 task = pipeline.get_nowait()
+                logger.debug(f"{os.getpid()} - PIPELINE_GET - op: {task['op']:14} - instance: {task['test'].name}")
             except queue.Empty:
                 break
             else:
