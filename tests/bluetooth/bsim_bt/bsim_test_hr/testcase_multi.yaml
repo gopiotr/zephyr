@@ -1,0 +1,26 @@
+tests:
+  bluetooth.bsim.hr:
+    sysbuild: true
+    multidevice: true
+    devices:
+      - name: "peripheral_hr"
+        application: "samples/bluetooth/peripheral_hr/sample.bluetooth.peripheral_hr"
+        harness: console
+        harness_config:
+          type: one_line
+          regex:
+            - "*** Booting Zephyr OS build"
+        #bsim_config:  # bsim_config is unecessary in this case (no extra args to pass)
+      - name: "central_hr"
+        application: "samples/bluetooth/central_hr/sample.bluetooth.central_hr"
+        harness: console
+        harness_config:
+          type: one_line
+          regex:
+            - "*** Booting Zephyr OS build"
+        #bsim_config:  # bsim_config is unecessary in this case (no extra args to pass)
+      - name: "2G4_phy"
+        application: "bsim/bin/bs_2G4_phy_v1"
+        bsim_only: true
+        bsim_extra_args:
+          - "-sim_length=10e6"

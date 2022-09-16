@@ -1,0 +1,16 @@
+common:
+  build_only: true
+  extra_args: CMAKE_C_FLAGS='-Werror' CONFIG_COVERAGE=y CMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+tests:
+  bluetooth.bsim.app_split_build:
+    build_only: true
+    extra_args: CONF_FILE=prj_split.conf
+
+  bluetooth.bsim.app_split_low_lat_build:
+    build_only: true
+    extra_args: CONF_FILE=prj_split_low_lat.conf
+
+  bluetooth.bsim.app_split_privacy_encrypted_build:
+    build_only: true
+    extra_args: CONF_FILE=prj_split_privacy.conf

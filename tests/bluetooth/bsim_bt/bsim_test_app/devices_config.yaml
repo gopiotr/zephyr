@@ -1,0 +1,65 @@
+common:
+  devices:
+    peripheral:
+      bsim_extra_args:
+        - "-rs=23"
+    central:
+      bsim_extra_args:
+        - "-rs=6"
+  phy:
+    application: "${BSIM_OUT_PATH}/bin/bs_2G4_phy_v1"
+    bsim_extra_args:
+      - "-sim_length=20e6"
+
+configurations:
+  app_split:
+    test_names:
+      - test_app_split
+    devices:
+      peripheral:
+        bsim_extra_args:
+          - "-testid=peripheral"
+          - "-RealEncryption=0"
+      central:
+        bsim_extra_args:
+          - "-testid=central"
+          - "-RealEncryption=0"
+
+  app_split_encrypted:
+    test_names:
+      - test_app_split
+    devices:
+      peripheral:
+        bsim_extra_args:
+          - "-testid=peripheral"
+          - "-RealEncryption=1"
+      central:
+        bsim_extra_args:
+          - "-testid=central_encrypted"
+          - "-RealEncryption=1"
+
+  app_split_low_lat:
+    test_names:
+      - test_app_split_low_lat
+    devices:
+      peripheral:
+        bsim_extra_args:
+          - "-testid=peripheral"
+          - "-RealEncryption=0"
+      central:
+        bsim_extra_args:
+          - "-testid=central"
+          - "-RealEncryption=0"
+
+  app_split_privacy_encrypted:
+    test_names:
+      - test_app_split_privacy_encrypted
+    devices:
+      peripheral:
+        bsim_extra_args:
+          - "-testid=peripheral"
+          - "-RealEncryption=1"
+      central:
+        bsim_extra_args:
+          - "-testid=central_encrypted"
+          - "-RealEncryption=1"
