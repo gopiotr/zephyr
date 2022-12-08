@@ -1,0 +1,6 @@
+sample:
+  name: Shell Sample
+tests:
+  sample.shell.shell_module:
+    tags: shell
+    min_ram: 40
