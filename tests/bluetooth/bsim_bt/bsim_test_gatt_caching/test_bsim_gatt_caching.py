@@ -1,9 +1,9 @@
-import pytest
 import sys
+import pytest
 
 sys.path.append('..')
-from bsim import BsimDevice, BsimPhy, BsimRunner
+from bsim import bsim_test_run
 
 
-def test_gatt_caching(request, specification, builder, devices_config):
-    pass
+def test_gatt_caching(specification, builder, duts):
+    bsim_test_run(duts)

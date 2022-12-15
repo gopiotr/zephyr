@@ -4,6 +4,13 @@ import sys
 from pathlib import Path
 import yaml
 import copy
+import shutil
+import logging
+
+logger = logging.getLogger(__name__)
+
+from twister2.device.native_simulator_adapter import NativeSimulatorAdapter
+
 
 DEVICES_CONFIG_FILE_NAME_BASE = "devices_config"
 DEVICES_CONFIG_FILE_EXTENSIONS = [".yaml", ".yml"]
@@ -101,6 +108,57 @@ def _merge_common_option(common_key, common_value, config_options_old):
     return config_options
 
 
+@pytest.fixture()
+def duts(request, devices_config):
+    build_spec = request.session.specifications[request.node.nodeid]
+    twister_config = request.config.twister_config
+    duts = generate_duts(request, build_spec, twister_config, devices_config)
+    return duts
+
+
+def generate_duts(request, build_spec, twister_config, devices_config):
+    sim_id = get_sim_id(request.node.name)
+    exe_path = copy_exe(build_spec.build_dir, sim_id)
+    env_var = get_env_var()
+
+    duts = {}
+    for idx, (device_name, device_config) in enumerate(devices_config["devices"].items()):
+        device_command = [str(exe_path), f"-s={sim_id}", f"-d={idx}"] + device_config.get("bsim_extra_args", [])
+        duts[device_name] = NativeSimulatorAdapter(twister_config)
+        duts[device_name].command = device_command
+
+    phy_config = devices_config["phy"]
+    phy_application_path = phy_config["application"]
+    phy_application_path = phy_application_path.replace("${BSIM_OUT_PATH}", env_var["BSIM_OUT_PATH"])
+    phy_command = [phy_application_path, f"-s={sim_id}", f"-D={idx+1}"] + phy_config.get("bsim_extra_args", [])
+    duts["phy"] = NativeSimulatorAdapter(twister_config)
+    duts["phy"].command = phy_command
+    duts["phy"].process_kwargs["cwd"] = str(Path(phy_application_path).parent)
+
+    return duts
+
+
+def get_sim_id(test_name):
+    sim_id = test_name
+    sim_id = sim_id.replace("[", "_")
+    sim_id = sim_id.replace("]", "")
+    sim_id = sim_id.replace(".", "_")
+    sim_id = sim_id.replace(":", "_")
+    sim_id = sim_id.replace("-", "_")
+    return sim_id
+
+
+def copy_exe(build_dir, sim_id):
+    old_exe_path = build_dir / "zephyr" / "zephyr.exe"
+
+    bsim_out_bin_path = Path(os.getenv("BSIM_OUT_PATH")) / "bin"
+    new_exe_path = bsim_out_bin_path / sim_id
+
+    shutil.copy(old_exe_path, new_exe_path)
+
+    return new_exe_path
+
+
 def get_env_var():
     env_var = {
         "ZEPHYR_BASE": os.getenv("ZEPHYR_BASE"),
@@ -123,13 +181,3 @@ def get_env_var():
 @pytest.fixture(scope="module")
 def env_var():
     return get_env_var()
-
-
-class Parser():
-    def parse(self, output):
-        pass
-
-
-@pytest.fixture()
-def parser():
-    return Parser()

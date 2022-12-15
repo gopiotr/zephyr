@@ -2,4 +2,3 @@ tests:
   bluetooth.bsim.gatt_caching_build:
     build_only: true
     extra_args: CMAKE_C_FLAGS='-Werror' CONFIG_COVERAGE=y CMAKE_EXPORT_COMPILE_COMMANDS=ON CONF_FILE=prj.conf
-
