@@ -5,5 +5,6 @@ sys.path.append('..')
 from bsim import bsim_test_run
 
 
-def test_gatt_caching(specification, builder, duts):
+@pytest.mark.build_specification
+def test_gatt_caching(builder, duts):
     bsim_test_run(duts)
