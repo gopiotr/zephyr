@@ -1,9 +1,3 @@
-common:
-  phy:
-    application: "${BSIM_OUT_PATH}/bin/bs_2G4_phy_v1"
-    bsim_extra_args:
-      - "-sim_length=60e6"
-
 configurations:
   db_hash_read_eatt:
     devices:
@@ -13,6 +7,10 @@ configurations:
       client:
         bsim_extra_args:
           - "-testid=gatt_client_db_hash_read_eatt"
+      bsim_phy:
+        application: "${BSIM_OUT_PATH}/bin/bs_2G4_phy_v1"
+        bsim_extra_args:
+          - "-sim_length=60e6"
 
   db_hash_read_no_eatt:
     devices:
@@ -22,6 +20,10 @@ configurations:
       client:
         bsim_extra_args:
           - "-testid=gatt_client_db_hash_read_no_eatt"
+      bsim_phy:
+        application: "${BSIM_OUT_PATH}/bin/bs_2G4_phy_v1"
+        bsim_extra_args:
+          - "-sim_length=60e6"
 
   out_of_sync_eatt:
     devices:
@@ -31,6 +33,10 @@ configurations:
       client:
         bsim_extra_args:
           - "-testid=gatt_client_out_of_sync_eatt"
+      bsim_phy:
+        application: "${BSIM_OUT_PATH}/bin/bs_2G4_phy_v1"
+        bsim_extra_args:
+          - "-sim_length=60e6"
 
   out_of_sync_no_eatt:
     devices:
@@ -40,6 +46,10 @@ configurations:
       client:
         bsim_extra_args:
           - "-testid=gatt_client_out_of_sync_no_eatt"
+      bsim_phy:
+        application: "${BSIM_OUT_PATH}/bin/bs_2G4_phy_v1"
+        bsim_extra_args:
+          - "-sim_length=60e6"
 
   retry_reads_eatt:
     devices:
@@ -49,6 +59,10 @@ configurations:
       client:
         bsim_extra_args:
           - "-testid=gatt_client_retry_reads_eatt"
+      bsim_phy:
+        application: "${BSIM_OUT_PATH}/bin/bs_2G4_phy_v1"
+        bsim_extra_args:
+          - "-sim_length=60e6"
 
   retry_reads_no_eatt:
     devices:
@@ -58,3 +72,7 @@ configurations:
       client:
         bsim_extra_args:
           - "-testid=gatt_client_retry_reads_no_eatt"
+      bsim_phy:
+        application: "${BSIM_OUT_PATH}/bin/bs_2G4_phy_v1"
+        bsim_extra_args:
+          - "-sim_length=60e6"
