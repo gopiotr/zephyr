@@ -9,7 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from twister2.device.native_simulator_adapter import NativeSimulatorAdapter
+from twister2.device.simulator_adapter import NativeSimulatorAdapter
 
 
 DEVICES_CONFIG_FILE_NAME = "devices_config.yaml"
