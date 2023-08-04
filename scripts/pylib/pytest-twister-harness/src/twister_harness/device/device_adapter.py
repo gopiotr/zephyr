@@ -43,7 +43,7 @@ class DeviceAdapter(abc.ABC):
         self._west: str | None = None
         self._test_name: str = test_name
 
-        self.handler_log_path: Path = Path(device_config.build_dir) / 'handler.log'
+        self.handler_log_path: Path = device_config.build_dir / 'handler.log'
         self._initialize_log_file(self.handler_log_path)
 
     def __repr__(self) -> str:
