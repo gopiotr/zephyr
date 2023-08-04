@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class DeviceAdapter(abc.ABC):
     """Class defines an interface for all devices."""
 
-    def __init__(self, device_config: DeviceConfig, **kwargs) -> None:
+    def __init__(self, device_config: DeviceConfig, test_name: str = '', **kwargs) -> None:
         """
         :param device_config: device configuration
         :param test_name: this information is used only in header log file, it
@@ -41,6 +41,7 @@ class DeviceAdapter(abc.ABC):
         self._device_connected: threading.Event = threading.Event()
         self.command: list[str] = []
         self._west: str | None = None
+        self._test_name: str = test_name
 
         self.handler_log_path: Path = Path(device_config.build_dir) / 'handler.log'
         self._initialize_log_file(self.handler_log_path)
@@ -186,7 +187,7 @@ class DeviceAdapter(abc.ABC):
 
     def _initialize_log_file(self, log_file_path: Path) -> None:
         with open(log_file_path, 'a+') as log_file:
-            log_file.write(f'\n==== Test started at {datetime.now()} ====\n')
+            log_file.write(f'\n==== Test {self._test_name} started at {datetime.now()} ====\n')
 
     def _start_reader_thread(self) -> None:
         self._reader_thread = threading.Thread(target=self._handle_device_output, daemon=True)
