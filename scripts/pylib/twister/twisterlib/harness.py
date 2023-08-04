@@ -228,6 +228,7 @@ class Pytest(Harness):
         self.running_dir = instance.build_dir
         self.source_dir = instance.testsuite.source_dir
         self.report_file = os.path.join(self.running_dir, 'report.xml')
+        self.pytest_log_file_path = os.path.join(self.running_dir, 'twister_harness.log')
         self.reserved_serial = None
 
     def pytest_run(self, timeout):
@@ -261,7 +262,12 @@ class Pytest(Harness):
         handler: Handler = self.instance.handler
 
         if handler.options.verbose > 1:
-            command.append('--log-level=DEBUG')
+            command.extend([
+                '--log-level=DEBUG',
+                '-o', 'log_cli=true',
+                '--log-cli-format=%(levelname)s: %(message)s',
+                f'--log-file={self.pytest_log_file_path}'
+            ])
 
         if handler.type_str == 'device':
             command.extend(
