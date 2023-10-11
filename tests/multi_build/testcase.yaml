@@ -1,0 +1,6 @@
+tests:
+  multi_build.multi_build:
+    sysbuild: true
+    tags:
+      - 'multi_build'
+    build_only: true
