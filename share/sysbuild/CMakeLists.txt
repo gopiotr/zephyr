@@ -26,7 +26,7 @@ project(sysbuild LANGUAGES)
 
 get_filename_component(APP_DIR  ${APP_DIR} ABSOLUTE)
 get_filename_component(app_name ${APP_DIR} NAME)
-set(DEFAULT_IMAGE "${app_name}")
+set(DEFAULT_IMAGE "${app_name}" CACHE INTERNAL "Default image")
 
 # This is where all Zephyr applications are added to the multi-image build.
 sysbuild_add_subdirectory(images)
