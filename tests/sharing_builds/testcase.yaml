@@ -1,0 +1,9 @@
+tests:
+  bluetooth.central_and_peripheral:
+    required_images:
+      - sample.bluetooth.central
+      - sample.bluetooth.peripheral_hr
+    platform_allow:
+      - qemu_cortex_m3
+    harness: pytest
+    tags: bluetooth
