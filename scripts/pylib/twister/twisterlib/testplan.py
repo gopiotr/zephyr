@@ -513,9 +513,11 @@ class TestPlan:
                             self.testsuites[suite.name] = suite
 
                         if suite.name in self.testsuites and suite.required_images:
-                            additional_testsuite_ids.update(suite.required_images)
+                            # TODO: continue here
+                            logger.debug("Required images found")
+                            # additional_testsuite_ids.update(suite.required_images)
 
-                        # collecting all found testsuites can be too memory consuming
+                        # TODO: collecting all found testsuites can be too memory consuming
                         found_testsuites[suite.id] = suite
 
                 except Exception as e:

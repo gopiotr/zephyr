@@ -155,7 +155,17 @@ mapping:
         type: seq
         required: false
         sequence:
-          - type: str
+          - type: map
+            required: false
+            mapping:
+              path:
+                type: str
+                required: false
+              ids:
+                type: seq
+                required: false
+                sequence:
+                  - type: str
       "required_snippets":
         type: seq
         required: false
@@ -268,7 +278,17 @@ mapping:
             type: seq
             required: false
             sequence:
-              - type: str
+              - type: map
+                required: false
+                mapping:
+                  path:
+                    type: str
+                    required: false
+                  ids:
+                    type: seq
+                    required: false
+                    sequence:
+                      - type: str
           "filter":
             type: str
             required: false

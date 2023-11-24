@@ -7,10 +7,13 @@ common:
 tests:
   bluetooth.central_and_peripheral_hr:
     required_images:
-      - sample.bluetooth.central
-      - sample.bluetooth.peripheral_hr
+      - path: "samples/bluetooth"
+        ids:
+          - sample.bluetooth.central
+          - sample.bluetooth.peripheral_hr
 
   bluetooth.central_and_peripheral_ht:
     required_images:
-      - sample.bluetooth.central
-      - sample.bluetooth.peripheral_ht
+      - ids:
+          - sample.bluetooth.central
+          - sample.bluetooth.peripheral_ht
