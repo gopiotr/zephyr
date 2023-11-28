@@ -403,6 +403,7 @@ class TestSuite(DisablePyTestCollectionMixin):
         self.testcases = []
 
         self.ztest_suite_names = []
+        self.required_by_other_suite = False
 
         if data:
             self.load(data)

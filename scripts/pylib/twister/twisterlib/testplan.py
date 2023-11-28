@@ -284,6 +284,9 @@ class TestPlan:
         per_set = int(total / sets)
         num_extra_sets = total - (per_set * sets)
 
+        instance_id_groups = self._create_instance_groups(to_run)
+        # TODO: continue there
+
         # Try and be more fair for rounding error with integer division
         # so the last subset doesn't get overloaded, we add 1 extra to
         # subsets 1..num_extra_sets.
@@ -305,6 +308,38 @@ class TestPlan:
             self.instances.update(skipped)
             self.instances.update(errors)
 
+    @staticmethod
+    def _create_instance_groups(instances_to_run):
+        # TODO: this works only on one platform
+        id_groups = []
+        for instance in instances_to_run.values():
+            id_group = [instance.testsuite.id]
+            if instance.testsuite.required_images:
+                for required_images in instance.testsuite.required_images:
+                    id_group.extend(required_images.get('ids', []))
+            id_groups.append(id_group)
+
+        # algorithm taken from: https://stackoverflow.com/a/4842897
+        id_groups_merged = []
+        while len(id_groups) > 0:
+            first_group, *rest_groups = id_groups
+            first_group = set(first_group)
+            first_group_len_old = -1
+
+            while len(first_group) > first_group_len_old:
+                first_group_len_old = len(first_group)
+                rest_groups_new = []
+                for rest_group in rest_groups:
+                    if len(first_group.intersection(set(rest_group))) > 0:
+                        first_group |= set(rest_group)
+                    else:
+                        rest_groups_new.append(rest_group)
+                rest_groups = rest_groups_new
+
+            id_groups_merged.append(list(first_group))
+            id_groups = rest_groups
+
+        return id_groups_merged
 
     def handle_modules(self):
         # get all enabled west projects
@@ -513,11 +548,15 @@ class TestPlan:
                             self.testsuites[suite.name] = suite
 
                         if suite.name in self.testsuites and suite.required_images:
-                            # TODO: continue here
                             logger.debug("Required images found")
-                            # additional_testsuite_ids.update(suite.required_images)
+                            # TODO: add logic responsible for looking for
+                            # testsuites out of provided test root (taking into
+                            # consideration path set in yaml file).
+                            for required_images in suite.required_images:
+                                additional_testsuite_ids.update(required_images.get('ids', []))
 
-                        # TODO: collecting all found testsuites can be too memory consuming
+                        # TODO: collecting all found testsuites can be too
+                        # memory consuming
                         found_testsuites[suite.id] = suite
 
                 except Exception as e:
@@ -532,12 +571,14 @@ class TestPlan:
             for chosen_testsuite in self.testsuites.values():
                 if additional_testsuite_id == chosen_testsuite.id:
                     # additional test scenario was already added to scope
+                    chosen_testsuite.required_by_other_suite = True
                     additional_testsuite_should_be_added = False
                     break
 
             if additional_testsuite_should_be_added:
                 if additional_testsuite_id in found_testsuites:
                     additional_testsuite = found_testsuites[additional_testsuite_id]
+                    additional_testsuite.required_by_other_suite = True
                     self.testsuites[additional_testsuite.name] = additional_testsuite
                 else:
                     # TODO: It would be good to pass also information about yaml

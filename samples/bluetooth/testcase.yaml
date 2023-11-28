@@ -14,6 +14,7 @@ tests:
 
   bluetooth.central_and_peripheral_ht:
     required_images:
-      - ids:
+      - path: "samples/bluetooth"
+        ids:
           - sample.bluetooth.central
           - sample.bluetooth.peripheral_ht
